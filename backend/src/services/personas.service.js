@@ -10,10 +10,11 @@ export const crearPersonaConUsuario = async ({
   telefono,
   direccion,
   email,
-  password, // 🆕 Contraseña personalizada (opcional)
+  password,
+  username: usernamePersonalizado, // si se proporciona, se usa directamente
   // Campos adicionales para TUTOR
   especialidad,
-  nivel_id, // 🔧 Fix: usar nivel_id para coincidir con el frontend
+  nivel_id,
   tarifa_por_sesion,
   ciudad_id,
   distrito_id,
@@ -57,11 +58,11 @@ export const crearPersonaConUsuario = async ({
       }
     }
 
-    // 2️⃣ Generar username único
-    const username = await generarUsername({
+    // 2️⃣ Usar username provisto o generar uno único
+    const username = usernamePersonalizado || await generarUsername({
       nombres,
       apellidos,
-      rol_id: rolId // 🔧 Fix: pasar rol_id en lugar de rol
+      rol_id: rolId
     });
 
 

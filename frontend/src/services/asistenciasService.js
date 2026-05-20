@@ -53,3 +53,11 @@ export async function listarMisAsistenciasTutor() {
 export async function listarAsistenciasPadre() {
   return await makeGetRequest('/api/asistencias/padre');
 }
+
+/**
+ * TUTOR: Confirmar una asistencia previamente registrada
+ * POST /api/asistencias/tutor/:id/confirmar
+ */
+export async function confirmarAsistenciaTutor(asistenciaId) {
+  return await makePostRequest(`/api/asistencias/tutor/${asistenciaId}/confirmar`, {});
+}

@@ -27,6 +27,42 @@ router.get(
   listarMisAsistencias
 );
 
+// TUTOR (4) confirma una asistencia existente
+router.post(
+  "/tutor/:id/confirmar",
+  allowRoles(4),
+  async (req, res) => {
+    try {
+      const { pool } = await import("../config/db.js");
+      const { rows: tutorRows } = await pool.query(
+        "SELECT id FROM tutores WHERE usuario_id = $1",
+        [req.user.userId]
+      );
+      if (tutorRows.length === 0) {
+        return res.status(403).json({ message: "Tutor no válido" });
+      }
+
+      const { rows } = await pool.query(`
+        UPDATE asistencias a
+        SET confirmado_tutor = true
+        FROM matriculas m
+        WHERE a.id = $1
+          AND a.matricula_id = m.id
+          AND m.tutor_id = $2
+        RETURNING a.*
+      `, [req.params.id, tutorRows[0].id]);
+
+      if (rows.length === 0) {
+        return res.status(404).json({ message: "Asistencia no encontrada o no pertenece al tutor" });
+      }
+
+      res.json({ message: "Asistencia confirmada", data: rows[0] });
+    } catch (error) {
+      res.status(500).json({ message: error.message });
+    }
+  }
+);
+
 // PADRE (3) solo puede ver asistencias (lectura)
 router.get(
   "/padre",

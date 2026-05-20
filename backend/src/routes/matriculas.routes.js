@@ -4,7 +4,8 @@ import {
   listarMatriculas,
   obtenerMatricula,
   actualizarMatricula,
-  cambiarEstadoMatricula
+  cambiarEstadoMatricula,
+  listarMisMatriculas
 } from "../controllers/matriculas.controller.js";
 
 import { auth } from "../middlewares/auth.middleware.js";
@@ -13,6 +14,12 @@ import { logAction } from "../middlewares/logger.middleware.js";
 
 const router = Router();
 router.use(auth);
+
+// TUTOR (4) - Ver sus matrículas activas (debe ir ANTES de /:id)
+router.get("/mis-matriculas",
+  allowRoles(4),
+  listarMisMatriculas
+);
 
 // ADMIN (1) y TRABAJADOR (2)
 router.post("/",
@@ -58,14 +65,6 @@ router.delete("/:id",
       res.status(500).json({ message: error.message });
     }
   }
-);
-
-// TUTOR (4) - Ver sus matrículas activas
-import { listarMisMatriculas } from "../controllers/matriculas.controller.js";
-
-router.get("/mis-matriculas",
-  allowRoles(4),
-  listarMisMatriculas
 );
 
 export default router;

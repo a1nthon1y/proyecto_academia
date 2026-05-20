@@ -109,36 +109,27 @@ export const listarHijos = async (usuarioId) => {
 };
 
 export const listarAsistencias = async (usuarioId) => {
-  // Obtener asistencias de todos los hijos del padre
   const { rows } = await pool.query(`
     SELECT 
       asist.id,
       asist.fecha,
-      asist.estado,
-      asist.observacion,
-      a.nombres || ' ' || a.apellidos as alumno,
-      t.nombres || ' ' || t.apellidos as tutor,
-      c.nombre as curso
-    FROM asistencia_detalles ad
-    JOIN asistencias asist ON asist.id = ad.asistencia_id
-    JOIN alumnos a ON a.id = ad.alumno_id
+      asist.hora_llegada_tutor,
+      asist.hora_confirmacion_padre,
+      asist.confirmado_tutor,
+      asist.confirmado_padre,
+      asist.creado_en,
+      a.nombres || ' ' || a.apellidos AS alumno,
+      t.nombres || ' ' || t.apellidos AS tutor,
+      c.nombre AS curso
+    FROM asistencias asist
+    JOIN matriculas m ON m.id = asist.matricula_id
+    JOIN alumnos a ON a.id = m.alumno_id
     JOIN padres p ON p.id = a.padre_id
-    LEFT JOIN matriculas m ON m.alumno_id = a.id AND m.estado = 'ACTIVO' -- Opcional: Vincular con matrícula actual
-    LEFT JOIN tutores t ON t.id = asist.tutor_id
-    LEFT JOIN cursos c ON c.id = m.curso_id -- Si la asistencia está ligada a un curso/clase
+    LEFT JOIN tutores t ON t.id = m.tutor_id
+    LEFT JOIN cursos c ON c.id = m.curso_id
     WHERE p.usuario_id = $1
     ORDER BY asist.fecha DESC
   `, [usuarioId]);
-
-  /* 
-     NOTA: La consulta anterior es una aproximación generica. 
-     Dependiendo de cómo esté estructurada la tabla 'asistencias' y 'asistencia_detalles' 
-     (si es que existen, o si es una sola tabla), esto podría variar.
-     Asumiré una estructura simple basada en lo común: 'asistencias' vincula tutor/fecha, 
-     y 'asistencia_detalles' vincula alumno/estado.
-     
-     Si la tabla es simple (una fila por asistencia de alumno):
-  */
 
   return rows;
 };

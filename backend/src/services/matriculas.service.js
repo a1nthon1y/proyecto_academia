@@ -20,13 +20,13 @@ export const crearMatricula = async ({
   if (alumno.rowCount === 0)
     throw new Error("Alumno no existe");
 
-  // Validar que alumno NO tiene matrícula activa
+  // Validar que alumno NO tiene matrícula activa o pendiente
   const activa = await pool.query(
-    "SELECT 1 FROM matriculas WHERE alumno_id = $1 AND estado = 'ACTIVO'",
+    "SELECT 1 FROM matriculas WHERE alumno_id = $1 AND estado IN ('ACTIVO','PENDIENTE')",
     [alumno_id]
   );
   if (activa.rowCount > 0)
-    throw new Error("El alumno ya tiene una matrícula activa");
+    throw new Error("El alumno ya tiene una matrícula activa o pendiente");
 
   // Validar tutor SI SE ENVÍA
   if (tutor_id) {
@@ -109,10 +109,10 @@ export const listarMatriculas = async () => {
       u.activo AS tutor_activo
     FROM matriculas m
     JOIN alumnos al ON al.id = m.alumno_id
-    JOIN tutores t ON t.id = m.tutor_id
+    LEFT JOIN tutores t ON t.id = m.tutor_id
     JOIN cursos c ON c.id = m.curso_id
     JOIN padres p ON p.id = al.padre_id
-    JOIN usuarios u ON u.id = t.usuario_id
+    LEFT JOIN usuarios u ON u.id = t.usuario_id
     JOIN usuarios up ON up.id = p.usuario_id
     LEFT JOIN niveles n ON n.id = al.nivel_id
     ORDER BY m.id DESC
