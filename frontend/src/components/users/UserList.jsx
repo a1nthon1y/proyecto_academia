@@ -118,13 +118,6 @@ export default function UserList() {
   const handleCreate = () => {
     setEditingUser(null);
     form.resetFields();
-    // Limpiar explícitamente todos los campos
-    form.setFieldsValue({
-      nombre: undefined,
-      correo: undefined,
-      rol: undefined,
-      password: undefined,
-    });
     setModalVisible(true);
   };
 
@@ -151,13 +144,6 @@ export default function UserList() {
       setModalVisible(false);
       setEditingUser(null);
       form.resetFields();
-      // Limpiar explícitamente todos los campos después de guardar
-      form.setFieldsValue({
-        nombre: undefined,
-        correo: undefined,
-        rol: undefined,
-        password: undefined,
-      });
       refetch();
     } catch (error) {
       toast.error(error.message || 'Error al procesar la solicitud');

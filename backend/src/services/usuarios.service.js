@@ -58,7 +58,7 @@ export const obtenerUsuario = async (id) => {
   return rows[0];
 };
 
-export const actualizarUsuario = async (id, { email, password, rol_id }) => {
+export const actualizarUsuario = async (id, { email, password, rol_id, username }) => {
   const usuario = await pool.query(
     "SELECT * FROM usuarios WHERE id = $1",
     [id]
