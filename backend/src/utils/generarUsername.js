@@ -17,7 +17,9 @@ export const generarUsername = async ({
   }
 
   let prefijo;
-  if (rol_id === 3) prefijo = "p";      // PADRE
+  if (rol_id === 1) prefijo = "a";      // ADMIN
+  else if (rol_id === 2) prefijo = "w"; // TRABAJADOR (worker)
+  else if (rol_id === 3) prefijo = "p"; // PADRE
   else if (rol_id === 4) prefijo = "t"; // TUTOR
   else throw new Error("Rol no soportado para username");
 
