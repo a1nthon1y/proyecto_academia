@@ -5,6 +5,7 @@ import {
   actualizarTutor,
   obtenerMiPerfil,
   registrarDisponibilidad,
+  listarDisponibilidad,
   crearTutor,
   eliminarTutor
 } from "../controllers/tutores.controller.js";
@@ -44,6 +45,8 @@ router.delete("/:id",
 );
 
 // ADMIN (1) y TRABAJADOR (2)
+router.get("/:id/disponibilidad", allowRoles(1, 2), listarDisponibilidad);
+
 router.post(
   "/:id/disponibilidad",
   allowRoles(1, 2),

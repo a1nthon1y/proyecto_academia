@@ -7,6 +7,7 @@ import { useAlumnos } from '@/hooks/useAlumnos';
 import { useTutores } from '@/hooks/useTutoresTrabajador';
 import { useCursos } from '@/hooks/useCursos';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { DisponibilidadTutor } from '@/components/matriculas/DisponibilidadTutor';
 import { toast } from 'sonner';
 
 /**
@@ -109,8 +110,8 @@ export function FormCrearMatricula({ onSuccess }) {
         </div>
 
         {/* Tutor (Opcional) */}
-        <div>
-          <label className="block text-sm font-medium text-slate-700 mb-1">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-slate-700">
             Tutor Asignado <span className="text-slate-400 font-normal">(Opcional)</span>
           </label>
           <select
@@ -125,9 +126,21 @@ export function FormCrearMatricula({ onSuccess }) {
               </option>
             ))}
           </select>
-          <p className="text-xs text-slate-500 mt-1">
-            Puedes asignar un tutor más tarde si aún no está definido.
-          </p>
+          {!formData.tutor_id && (
+            <p className="text-xs text-slate-500">
+              Puedes asignar un tutor más tarde si aún no está definido.
+            </p>
+          )}
+          {/* Panel de disponibilidad: aparece al seleccionar un tutor */}
+          {formData.tutor_id && (
+            <DisponibilidadTutor
+              tutorId={formData.tutor_id}
+              nombre={(() => {
+                const t = tutoresDisponibles.find((t) => String(t.id) === String(formData.tutor_id));
+                return t ? `${t.nombres} ${t.apellidos}` : '';
+              })()}
+            />
+          )}
         </div>
       </div>
 

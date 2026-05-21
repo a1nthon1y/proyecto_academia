@@ -119,6 +119,43 @@ export const actualizarTutor = async (id, data) => {
   return rows[0];
 };
 
+/**
+ * Listar disponibilidad semanal de un tutor + carga actual (matrículas activas)
+ */
+export const listarDisponibilidad = async (tutorId) => {
+  const [dispResult, cargaResult] = await Promise.all([
+    pool.query(
+      `SELECT id, dia_semana, hora_inicio, hora_fin
+       FROM tutor_disponibilidad
+       WHERE tutor_id = $1
+       ORDER BY
+         CASE dia_semana
+           WHEN 'LUNES'     THEN 1
+           WHEN 'MARTES'    THEN 2
+           WHEN 'MIERCOLES' THEN 3
+           WHEN 'JUEVES'    THEN 4
+           WHEN 'VIERNES'   THEN 5
+           WHEN 'SABADO'    THEN 6
+           WHEN 'DOMINGO'   THEN 7
+           ELSE 8
+         END,
+         hora_inicio`,
+      [tutorId]
+    ),
+    pool.query(
+      `SELECT COUNT(*) AS total
+       FROM matriculas
+       WHERE tutor_id = $1 AND estado = 'ACTIVO'`,
+      [tutorId]
+    ),
+  ]);
+
+  return {
+    disponibilidad: dispResult.rows,
+    matriculas_activas: parseInt(cargaResult.rows[0].total, 10),
+  };
+};
+
 export const registrarDisponibilidad = async (tutorId, {
   dia_semana,
   hora_inicio,

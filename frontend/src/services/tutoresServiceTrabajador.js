@@ -41,3 +41,9 @@ export async function actualizarTutor(id, data) {
 export async function eliminarTutor(id) {
   return await makeDeleteRequest(`/api/tutores/${id}`);
 }
+
+// Obtener disponibilidad horaria semanal + carga de matrículas activas
+// GET /api/tutores/:id/disponibilidad
+export async function getDisponibilidadTutor(id) {
+  return await makeGetRequest(`/api/tutores/${id}/disponibilidad`);
+}

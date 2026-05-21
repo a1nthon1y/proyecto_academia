@@ -59,6 +59,15 @@ export const obtenerMiPerfil = async (req, res) => {
   }
 };
 
+export const listarDisponibilidad = async (req, res) => {
+  try {
+    const data = await tutoresService.listarDisponibilidad(req.params.id);
+    res.json(data);
+  } catch (error) {
+    res.status(404).json({ message: error.message });
+  }
+};
+
 export const registrarDisponibilidad = async (req, res) => {
   try {
     const disponibilidad = await tutoresService.registrarDisponibilidad(

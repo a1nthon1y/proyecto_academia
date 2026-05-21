@@ -5,6 +5,7 @@ import { useTutores } from '@/hooks/useTutoresTrabajador';
 import { useUbicacion } from '@/hooks/useUbicacion';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { Search, MapPin, BookOpen, Star, Phone, Mail } from 'lucide-react';
+import { DisponibilidadTutor } from '@/components/matriculas/DisponibilidadTutor';
 
 /**
  * Buscador avanzado de tutores con filtros de especialidad y ubicación
@@ -169,9 +170,12 @@ export function BuscadorTutores({ onSelect, selectLabel = "Asignar Tutor" }) {
                                 </div>
                             </div>
 
+                            {/* Disponibilidad compacta */}
+                            <DisponibilidadTutor tutorId={tutor.id} compact />
+
                             <button
                                 onClick={() => onSelect(tutor)}
-                                className="w-full py-2 bg-navy-600 text-white text-sm font-semibold rounded-lg hover:bg-navy-700 transition shadow-sm"
+                                className="w-full mt-3 py-2 bg-navy-600 text-white text-sm font-semibold rounded-lg hover:bg-navy-700 transition shadow-sm"
                             >
                                 {selectLabel}
                             </button>
