@@ -640,10 +640,10 @@ export default function UserList() {
                       <td className="px-4 py-3 text-right">
                         <button
                           onClick={() => handleEdit(user)}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium bg-navy-50 text-navy-700 hover:bg-navy-100 transition"
+                          className="p-1.5 text-slate-500 hover:bg-slate-100 hover:text-navy-600 rounded-lg transition"
+                          title="Editar"
                         >
-                          <Pencil className="h-3 w-3" />
-                          Editar
+                          <Pencil className="h-4 w-4" />
                         </button>
                       </td>
                     </tr>
