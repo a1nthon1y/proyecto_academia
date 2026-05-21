@@ -20,13 +20,14 @@ export const crearMatricula = async ({
   if (alumno.rowCount === 0)
     throw new Error("Alumno no existe");
 
-  // Validar que alumno NO tiene matrícula activa o pendiente
+  // Validar que el alumno NO tiene ya una matrícula activa o pendiente en el MISMO curso
+  // (puede tener matrículas en cursos distintos con diferentes tutores)
   const activa = await pool.query(
-    "SELECT 1 FROM matriculas WHERE alumno_id = $1 AND estado IN ('ACTIVO','PENDIENTE')",
-    [alumno_id]
+    "SELECT 1 FROM matriculas WHERE alumno_id = $1 AND curso_id = $2 AND estado IN ('ACTIVO','PENDIENTE')",
+    [alumno_id, curso_id]
   );
   if (activa.rowCount > 0)
-    throw new Error("El alumno ya tiene una matrícula activa o pendiente");
+    throw new Error("El alumno ya tiene una matrícula activa o pendiente en este curso");
 
   // Validar tutor SI SE ENVÍA
   if (tutor_id) {
