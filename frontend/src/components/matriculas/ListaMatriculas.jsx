@@ -6,10 +6,11 @@ import { useCambiarEstadoMatricula, useEliminarMatricula } from '@/hooks/useMatr
 import { usePermissions } from '@/hooks/usePermissions';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { DataTable } from '@/components/tables/DataTable';
-import { Calendar, DollarSign, User, GraduationCap, Edit2, Trash2, UserPlus, Printer, AlertCircle } from 'lucide-react';
+import { Calendar, DollarSign, User, GraduationCap, Edit2, Trash2, UserPlus, Printer, AlertCircle, ClipboardList } from 'lucide-react';
 import { ModalBuscadorTutor } from './ModalBuscadorTutor';
 import { ConstanciaMatricula } from './ConstanciaMatricula';
 import { useActualizarMatricula } from '@/hooks/useMatriculasMutations';
+import Swal from 'sweetalert2';
 
 /**
  * Componente que muestra la lista de matrículas con información completa
@@ -26,7 +27,17 @@ export function ListaMatriculas({ onEdit }) {
   const [selectedForPrint, setSelectedForPrint] = useState(null);
 
   const handleCambiarEstado = async (id, nuevoEstado) => {
-    if (confirm(`¿Está seguro de cambiar el estado a ${nuevoEstado}?`)) {
+    const result = await Swal.fire({
+      title: `¿Cambiar estado a ${nuevoEstado}?`,
+      text: 'Esta acción actualizará el estado de la matrícula.',
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#1e3a8a',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sí, cambiar',
+      cancelButtonText: 'Cancelar',
+    });
+    if (result.isConfirmed) {
       await cambiarEstadoMutation.mutateAsync({ id, estado: nuevoEstado });
     }
   };
@@ -53,14 +64,24 @@ export function ListaMatriculas({ onEdit }) {
   };
 
   const handleEliminar = async (id, alumnoNombre) => {
-    if (confirm(`⚠️ ADVERTENCIA: ¿Está seguro de ELIMINAR PERMANENTEMENTE la matrícula de ${alumnoNombre}?\n\nEsta acción NO se puede deshacer.\n\nSolo elimine si es absolutamente necesario.`)) {
+    const result = await Swal.fire({
+      title: '¿Eliminar matrícula?',
+      html: `Se eliminará permanentemente la matrícula de <b>${alumnoNombre}</b>.<br/><br/>Esta acción <b>no se puede deshacer</b>.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#dc2626',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar',
+    });
+    if (result.isConfirmed) {
       await eliminarMutation.mutateAsync(id);
     }
   };
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center py-8">
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-12 flex justify-center">
         <LoadingSpinner />
       </div>
     );
@@ -68,10 +89,9 @@ export function ListaMatriculas({ onEdit }) {
 
   if (matriculas.length === 0) {
     return (
-      <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 text-center">
-        <p className="text-sm text-slate-600">
-          No hay matrículas registradas aún.
-        </p>
+      <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-12 text-center text-slate-500">
+        <ClipboardList className="h-12 w-12 mx-auto text-slate-300 mb-3" />
+        <p className="text-sm">No hay matrículas registradas aún.</p>
       </div>
     );
   }

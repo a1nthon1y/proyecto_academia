@@ -228,7 +228,8 @@ export default function UserList() {
     search: 'Búsqueda',
   };
   const activeChips = [];
-  if (rol) activeChips.push({ key: 'rol', label: filterLabels.rol, value: rol.charAt(0).toUpperCase() + rol.slice(1) });
+  const ROL_NOMBRES = { 1: 'Admin', 2: 'Trabajador', 3: 'Padre', 4: 'Tutor' };
+  if (rol) activeChips.push({ key: 'rol', label: filterLabels.rol, value: ROL_NOMBRES[rol] || String(rol) });
   if (search) activeChips.push({ key: 'search', label: filterLabels.search, value: search });
 
   return (
