@@ -6,11 +6,11 @@ import { FormCrearPadre } from '@/components/padres/FormCrearPadre';
 import { FormEditarPadre } from '@/components/padres/FormEditarPadre';
 import { useQuery } from '@tanstack/react-query';
 import { listarPadres } from '@/services/padresServiceTrabajador';
-import { useEliminarPadre } from '@/hooks/usePadresMutations';
+import { useDesactivarPadre, useReactivarPadre } from '@/hooks/usePadresMutations';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
-  Plus, Mail, Phone, CheckCircle, XCircle, Pencil, Trash2,
-  Users, Search, UserCheck,
+  Plus, Mail, Phone, CheckCircle, XCircle, Pencil, UserMinus, UserCheck,
+  Users, Search,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -18,13 +18,15 @@ export default function TrabajadorPadresPage() {
   const [view, setView] = useState('list');
   const [selectedPadre, setSelectedPadre] = useState(null);
   const [search, setSearch] = useState('');
+  const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
   const { data: padres, isLoading, refetch } = useQuery({
-    queryKey: ['padres', 'trabajador'],
-    queryFn: listarPadres,
+    queryKey: ['padres', 'trabajador', mostrarInactivos],
+    queryFn: () => listarPadres(mostrarInactivos),
   });
 
-  const eliminarMutation = useEliminarPadre();
+  const desactivarMutation = useDesactivarPadre();
+  const reactivarMutation = useReactivarPadre();
 
   const filtrados = useMemo(() => {
     const list = padres || [];
@@ -40,9 +42,11 @@ export default function TrabajadorPadresPage() {
 
   const stats = useMemo(() => {
     const list = padres || [];
+    const activos = list.filter((p) => p.activo).length;
     return {
       total: list.length,
-      activos: list.filter((p) => p.activo).length,
+      activos,
+      inactivos: list.length - activos,
       conEmail: list.filter((p) => p.email).length,
     };
   }, [padres]);
@@ -52,18 +56,42 @@ export default function TrabajadorPadresPage() {
     setView('edit');
   };
 
-  const handleDelete = async (padre) => {
+  const handleDesactivar = async (padre) => {
     const result = await Swal.fire({
-      title: '¿Estás seguro?',
-      text: `Se eliminará al padre ${padre.nombres} ${padre.apellidos}. Esta acción no se puede deshacer.`,
+      title: `¿Desactivar a ${padre.nombres}?`,
+      html: `
+        <p class="text-sm text-slate-600">
+          El padre <b>${padre.nombres} ${padre.apellidos}</b> ya no aparecerá
+          en las listas activas, pero todo su historial (hijos, matrículas, pagos)
+          se conserva.
+        </p>
+        <p class="text-xs text-slate-500 mt-3">
+          Si vuelve a la academia podrás reactivarlo desde la opción
+          <b>"Mostrar inactivos"</b>.
+        </p>
+      `,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc2626',
       cancelButtonColor: '#64748b',
-      confirmButtonText: 'Sí, eliminar',
+      confirmButtonText: 'Sí, desactivar',
       cancelButtonText: 'Cancelar',
     });
-    if (result.isConfirmed) eliminarMutation.mutate(padre.id);
+    if (result.isConfirmed) desactivarMutation.mutate(padre.id);
+  };
+
+  const handleReactivar = async (padre) => {
+    const result = await Swal.fire({
+      title: `¿Reactivar a ${padre.nombres}?`,
+      text: `El padre ${padre.nombres} ${padre.apellidos} volverá a aparecer como activo.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#059669',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sí, reactivar',
+      cancelButtonText: 'Cancelar',
+    });
+    if (result.isConfirmed) reactivarMutation.mutate(padre.id);
   };
 
   return (
@@ -94,15 +122,23 @@ export default function TrabajadorPadresPage() {
         </div>
 
         {view === 'list' && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total padres</p>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                {mostrarInactivos ? 'Total mostrados' : 'Padres activos'}
+              </p>
               <p className="mt-1 text-2xl font-bold text-navy-900">{stats.total}</p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Activos</p>
               <p className="mt-1 text-2xl font-bold text-emerald-700">{stats.activos}</p>
             </div>
+            {mostrarInactivos && (
+              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Inactivos</p>
+                <p className="mt-1 text-2xl font-bold text-slate-500">{stats.inactivos}</p>
+              </div>
+            )}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Con email</p>
               <p className="mt-1 text-2xl font-bold text-blue-700">{stats.conEmail}</p>
@@ -121,11 +157,22 @@ export default function TrabajadorPadresPage() {
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-slate-500" />
-                <span className="text-sm font-medium text-slate-700">
-                  {filtrados.length} de {stats.total} padres
-                </span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-slate-500" />
+                  <span className="text-sm font-medium text-slate-700">
+                    {filtrados.length} de {stats.total} padres
+                  </span>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer select-none ml-2">
+                  <input
+                    type="checkbox"
+                    checked={mostrarInactivos}
+                    onChange={(e) => setMostrarInactivos(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-navy-600 focus:ring-navy-500"
+                  />
+                  <span className="text-sm text-slate-600">Mostrar inactivos</span>
+                </label>
               </div>
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
@@ -165,9 +212,12 @@ export default function TrabajadorPadresPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filtrados.map((padre) => (
-                      <tr key={padre.id} className="hover:bg-slate-50 transition">
+                      <tr
+                        key={padre.id}
+                        className={`hover:bg-slate-50 transition ${!padre.activo ? 'bg-slate-50/60 opacity-75' : ''}`}
+                      >
                         <td className="px-4 py-3">
-                          <div className="font-medium text-navy-900">
+                          <div className={`font-medium ${padre.activo ? 'text-navy-900' : 'text-slate-600'}`}>
                             {padre.apellidos}, {padre.nombres}
                           </div>
                           <div className="text-xs text-slate-500">DNI: {padre.dni}</div>
@@ -202,13 +252,23 @@ export default function TrabajadorPadresPage() {
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
-                            <button
-                              onClick={() => handleDelete(padre)}
-                              className="p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition"
-                              title="Eliminar"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            {padre.activo ? (
+                              <button
+                                onClick={() => handleDesactivar(padre)}
+                                className="p-1.5 text-slate-500 hover:bg-amber-50 hover:text-amber-600 rounded-lg transition"
+                                title="Desactivar (conserva el historial)"
+                              >
+                                <UserMinus className="h-4 w-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleReactivar(padre)}
+                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                                title="Reactivar padre"
+                              >
+                                <UserCheck className="h-4 w-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

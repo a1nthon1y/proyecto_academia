@@ -47,8 +47,17 @@ export const actualizarPadre = async (req, res) => {
 
 export const eliminarPadre = async (req, res) => {
   try {
-    await padresService.eliminarPadre(req.params.id);
-    res.json({ message: "Padre eliminado correctamente" });
+    const resultado = await padresService.eliminarPadre(req.params.id);
+    res.json(resultado);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
+};
+
+export const reactivarPadre = async (req, res) => {
+  try {
+    const resultado = await padresService.reactivarPadre(req.params.id);
+    res.json(resultado);
   } catch (error) {
     res.status(400).json({ message: error.message });
   }
@@ -57,7 +66,8 @@ export const eliminarPadre = async (req, res) => {
 // TRABAJADOR/ADMIN - Listar todos los padres
 export const listarPadres = async (req, res) => {
   try {
-    const padres = await padresService.listarPadres();
+    const incluirInactivos = req.query.incluirInactivos === 'true';
+    const padres = await padresService.listarPadres({ incluirInactivos });
     res.json(padres);
   } catch (error) {
     res.status(500).json({ message: error.message });

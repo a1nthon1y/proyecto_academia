@@ -3,8 +3,18 @@ import * as personasService from "../services/personas.service.js";
 
 
 export const listarTutores = async (req, res) => {
-  const tutores = await tutoresService.listarTutores();
+  const incluirInactivos = req.query.incluirInactivos === 'true';
+  const tutores = await tutoresService.listarTutores({ incluirInactivos });
   res.json(tutores);
+};
+
+export const reactivarTutor = async (req, res) => {
+  try {
+    const resultado = await tutoresService.reactivarTutor(req.params.id);
+    res.json(resultado);
+  } catch (error) {
+    res.status(400).json({ message: error.message });
+  }
 };
 
 export const obtenerTutor = async (req, res) => {

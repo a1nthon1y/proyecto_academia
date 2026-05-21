@@ -17,24 +17,36 @@ export const obtenerPerfil = async (usuarioId) => {
 };
 
 
-// ELIMINAR PADRE (Soft Delete Usuario)
-export const eliminarPadre = async (id) => {
+/**
+ * Desactivar padre (soft delete). Reporta hijos con matrículas activas
+ * para que el frontend pueda advertir.
+ */
+export const desactivarPadre = async (id) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
 
-    // Obtener usuario_id
     const padre = await client.query("SELECT usuario_id FROM padres WHERE id = $1", [id]);
     if (padre.rowCount === 0) throw new Error("Padre no encontrado");
 
     const usuarioId = padre.rows[0].usuario_id;
 
-    // Desactivar usuario
+    // Contar hijos con matrículas activas
+    const hijosActivos = await client.query(`
+      SELECT COUNT(DISTINCT m.id) AS total
+      FROM matriculas m
+      JOIN alumnos a ON a.id = m.alumno_id
+      WHERE a.padre_id = $1 AND m.estado = 'ACTIVO'
+    `, [id]);
+    const totalActivas = parseInt(hijosActivos.rows[0].total, 10);
+
     await client.query("UPDATE usuarios SET activo = false WHERE id = $1", [usuarioId]);
 
     await client.query('COMMIT');
-    return { message: "Padre eliminado correctamente" };
-
+    return {
+      message: "Padre desactivado",
+      matriculas_activas: totalActivas,
+    };
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -43,9 +55,32 @@ export const eliminarPadre = async (id) => {
   }
 };
 
-export const listarPadres = async () => {
+// Alias retro-compatible
+export const eliminarPadre = desactivarPadre;
+
+export const reactivarPadre = async (id) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const padre = await client.query("SELECT usuario_id FROM padres WHERE id = $1", [id]);
+    if (padre.rowCount === 0) throw new Error("Padre no encontrado");
+
+    await client.query("UPDATE usuarios SET activo = true WHERE id = $1", [padre.rows[0].usuario_id]);
+
+    await client.query('COMMIT');
+    return { message: "Padre reactivado" };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const listarPadres = async ({ incluirInactivos = false } = {}) => {
   const { rows } = await pool.query(`
-      SELECT 
+      SELECT
         p.id,
         p.nombres,
         p.apellidos,
@@ -57,8 +92,8 @@ export const listarPadres = async () => {
         u.creado_en
       FROM padres p
       JOIN usuarios u ON u.id = p.usuario_id
-      WHERE u.activo = true 
-      ORDER BY p.id DESC
+      ${incluirInactivos ? '' : 'WHERE u.activo = true'}
+      ORDER BY u.activo DESC, p.id DESC
     `);
 
   return rows;

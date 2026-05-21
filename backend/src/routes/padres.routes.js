@@ -7,7 +7,8 @@ import {
   listarMisTutores,
   crearPadre,
   actualizarPadre,
-  eliminarPadre
+  eliminarPadre,
+  reactivarPadre
 } from "../controllers/padres.controller.js";
 
 import { auth } from "../middlewares/auth.middleware.js";
@@ -34,9 +35,15 @@ router.put("/:id",
 );
 
 router.delete("/:id",
-  allowRoles(1), // Solo ADMIN puede eliminar (soft delete)
-  logAction((req) => `ELIMINÓ padre ID: ${req.params.id}`),
+  allowRoles(1, 2),
+  logAction((req) => `Desactivó padre ID: ${req.params.id}`),
   eliminarPadre
+);
+
+router.put("/:id/reactivar",
+  allowRoles(1, 2),
+  logAction((req) => `Reactivó padre ID: ${req.params.id}`),
+  reactivarPadre
 );
 
 // PADRE (3)

@@ -1,5 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { registrarTutorCompleto, actualizarTutorCompleto, eliminarTutor } from '@/services/tutoresServiceTrabajador';
+import {
+  registrarTutorCompleto,
+  actualizarTutorCompleto,
+  desactivarTutor,
+  reactivarTutor,
+} from '@/services/tutoresServiceTrabajador';
 import { toast } from 'sonner';
 
 // Hook para registrar tutor completo (usuario + perfil)
@@ -39,18 +44,42 @@ export const useActualizarTutorCompleto = () => {
     return mutation;
 };
 
-// Hook para eliminar tutor
-export const useEliminarTutor = () => {
+// Hook para desactivar tutor (soft delete)
+export const useDesactivarTutor = () => {
     const queryClient = useQueryClient();
 
     return useMutation({
-        mutationFn: (id) => eliminarTutor(id), // Importar eliminarTutor de servicios (debo agregarlo en import)
-        onSuccess: () => {
-            toast.success('Tutor eliminado correctamente');
+        mutationFn: (id) => desactivarTutor(id),
+        onSuccess: (data) => {
+            const activas = data?.matriculas_activas || 0;
+            if (activas > 0) {
+                toast.success(`Tutor desactivado. ⚠️ Tenía ${activas} matrícula(s) activa(s) — revísalas.`, { duration: 6000 });
+            } else {
+                toast.success('Tutor desactivado correctamente');
+            }
             queryClient.invalidateQueries({ queryKey: ['tutores', 'trabajador'] });
         },
         onError: (error) => {
-            toast.error(error?.message || 'Error al eliminar tutor');
+            toast.error(error?.message || 'Error al desactivar tutor');
         }
     });
 };
+
+// Hook para reactivar tutor
+export const useReactivarTutor = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (id) => reactivarTutor(id),
+        onSuccess: () => {
+            toast.success('Tutor reactivado correctamente');
+            queryClient.invalidateQueries({ queryKey: ['tutores', 'trabajador'] });
+        },
+        onError: (error) => {
+            toast.error(error?.message || 'Error al reactivar tutor');
+        }
+    });
+};
+
+// Alias retro-compatible (cualquier consumidor anterior sigue funcionando)
+export const useEliminarTutor = useDesactivarTutor;

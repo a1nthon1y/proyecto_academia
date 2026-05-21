@@ -6,10 +6,10 @@ import { FormCrearTutor } from '@/components/tutores/FormCrearTutor';
 import { FormEditarTutor } from '@/components/tutores/FormEditarTutor';
 import { useQuery } from '@tanstack/react-query';
 import { listarTutores } from '@/services/tutoresServiceTrabajador';
-import { useEliminarTutor } from '@/hooks/useTutoresMutations';
+import { useDesactivarTutor, useReactivarTutor } from '@/hooks/useTutoresMutations';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
-  Plus, MapPin, Phone, Mail, CheckCircle, XCircle, Pencil, Trash2,
+  Plus, MapPin, Phone, Mail, CheckCircle, XCircle, Pencil, UserMinus, UserCheck,
   Users, Search, GraduationCap,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -18,13 +18,15 @@ export default function TrabajadorTutoresPage() {
   const [view, setView] = useState('list');
   const [selectedTutor, setSelectedTutor] = useState(null);
   const [search, setSearch] = useState('');
+  const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
   const { data: tutores, isLoading, refetch } = useQuery({
-    queryKey: ['tutores', 'trabajador'],
-    queryFn: listarTutores,
+    queryKey: ['tutores', 'trabajador', mostrarInactivos],
+    queryFn: () => listarTutores(mostrarInactivos),
   });
 
-  const eliminarMutation = useEliminarTutor();
+  const desactivarMutation = useDesactivarTutor();
+  const reactivarMutation = useReactivarTutor();
 
   const filtrados = useMemo(() => {
     const list = tutores || [];
@@ -40,9 +42,11 @@ export default function TrabajadorTutoresPage() {
 
   const stats = useMemo(() => {
     const list = tutores || [];
+    const activos = list.filter((t) => t.activo).length;
     return {
       total: list.length,
-      activos: list.filter((t) => t.activo).length,
+      activos,
+      inactivos: list.length - activos,
       especialidades: new Set(list.map((t) => t.especialidad).filter(Boolean)).size,
     };
   }, [tutores]);
@@ -52,18 +56,42 @@ export default function TrabajadorTutoresPage() {
     setView('edit');
   };
 
-  const handleDelete = async (tutor) => {
+  const handleDesactivar = async (tutor) => {
     const result = await Swal.fire({
-      title: '¿Estás seguro?',
-      text: `Se eliminará al tutor ${tutor.nombres} ${tutor.apellidos}. Esta acción no se puede deshacer.`,
+      title: `¿Desactivar a ${tutor.nombres}?`,
+      html: `
+        <p class="text-sm text-slate-600">
+          El tutor <b>${tutor.nombres} ${tutor.apellidos}</b> ya no aparecerá en las
+          listas activas, pero todo su historial (matrículas, asistencias, pagos)
+          se conserva.
+        </p>
+        <p class="text-xs text-slate-500 mt-3">
+          Si vuelve a la academia podrás reactivarlo desde la opción
+          <b>"Mostrar inactivos"</b>.
+        </p>
+      `,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonColor: '#dc2626',
       cancelButtonColor: '#64748b',
-      confirmButtonText: 'Sí, eliminar',
+      confirmButtonText: 'Sí, desactivar',
       cancelButtonText: 'Cancelar',
     });
-    if (result.isConfirmed) eliminarMutation.mutate(tutor.id);
+    if (result.isConfirmed) desactivarMutation.mutate(tutor.id);
+  };
+
+  const handleReactivar = async (tutor) => {
+    const result = await Swal.fire({
+      title: `¿Reactivar a ${tutor.nombres}?`,
+      text: `El tutor ${tutor.nombres} ${tutor.apellidos} volverá a aparecer como activo y podrá ser asignado a nuevas matrículas.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonColor: '#059669',
+      cancelButtonColor: '#64748b',
+      confirmButtonText: 'Sí, reactivar',
+      cancelButtonText: 'Cancelar',
+    });
+    if (result.isConfirmed) reactivarMutation.mutate(tutor.id);
   };
 
   return (
@@ -94,15 +122,23 @@ export default function TrabajadorTutoresPage() {
         </div>
 
         {view === 'list' && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total tutores</p>
+              <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                {mostrarInactivos ? 'Total mostrados' : 'Tutores activos'}
+              </p>
               <p className="mt-1 text-2xl font-bold text-navy-900">{stats.total}</p>
             </div>
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Activos</p>
               <p className="mt-1 text-2xl font-bold text-emerald-700">{stats.activos}</p>
             </div>
+            {mostrarInactivos && (
+              <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Inactivos</p>
+                <p className="mt-1 text-2xl font-bold text-slate-500">{stats.inactivos}</p>
+              </div>
+            )}
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Especialidades</p>
               <p className="mt-1 text-2xl font-bold text-blue-700">{stats.especialidades}</p>
@@ -121,11 +157,22 @@ export default function TrabajadorTutoresPage() {
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <Users className="h-4 w-4 text-slate-500" />
-                <span className="text-sm font-medium text-slate-700">
-                  {filtrados.length} de {stats.total} tutores
-                </span>
+              <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2">
+                  <Users className="h-4 w-4 text-slate-500" />
+                  <span className="text-sm font-medium text-slate-700">
+                    {filtrados.length} de {stats.total} tutores
+                  </span>
+                </div>
+                <label className="flex items-center gap-2 cursor-pointer select-none ml-2">
+                  <input
+                    type="checkbox"
+                    checked={mostrarInactivos}
+                    onChange={(e) => setMostrarInactivos(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-navy-600 focus:ring-navy-500"
+                  />
+                  <span className="text-sm text-slate-600">Mostrar inactivos</span>
+                </label>
               </div>
               <div className="relative">
                 <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
@@ -166,9 +213,12 @@ export default function TrabajadorTutoresPage() {
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filtrados.map((tutor) => (
-                      <tr key={tutor.id} className="hover:bg-slate-50 transition">
+                      <tr
+                        key={tutor.id}
+                        className={`hover:bg-slate-50 transition ${!tutor.activo ? 'bg-slate-50/60 opacity-75' : ''}`}
+                      >
                         <td className="px-4 py-3">
-                          <div className="font-medium text-navy-900">
+                          <div className={`font-medium ${tutor.activo ? 'text-navy-900' : 'text-slate-600'}`}>
                             {tutor.apellidos}, {tutor.nombres}
                           </div>
                           <div className="text-xs text-slate-500">
@@ -211,13 +261,23 @@ export default function TrabajadorTutoresPage() {
                             >
                               <Pencil className="h-4 w-4" />
                             </button>
-                            <button
-                              onClick={() => handleDelete(tutor)}
-                              className="p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-600 rounded-lg transition"
-                              title="Eliminar"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            {tutor.activo ? (
+                              <button
+                                onClick={() => handleDesactivar(tutor)}
+                                className="p-1.5 text-slate-500 hover:bg-amber-50 hover:text-amber-600 rounded-lg transition"
+                                title="Desactivar (conserva el historial)"
+                              >
+                                <UserMinus className="h-4 w-4" />
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => handleReactivar(tutor)}
+                                className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded-lg transition"
+                                title="Reactivar tutor"
+                              >
+                                <UserCheck className="h-4 w-4" />
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>

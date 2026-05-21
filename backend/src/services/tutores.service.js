@@ -3,8 +3,12 @@ import { pool } from "../config/db.js";
 
 
 
-// ELIMINAR TUTOR (Soft Delete)
-export const eliminarTutor = async (id) => {
+/**
+ * Desactivar tutor (soft delete).
+ * Devuelve también la cantidad de matrículas activas asociadas
+ * para que el frontend pueda advertir al usuario.
+ */
+export const desactivarTutor = async (id) => {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
@@ -12,10 +16,19 @@ export const eliminarTutor = async (id) => {
     const tutor = await client.query("SELECT usuario_id FROM tutores WHERE id = $1", [id]);
     if (tutor.rowCount === 0) throw new Error("Tutor no encontrado");
 
+    const matriculasActivas = await client.query(
+      "SELECT COUNT(*) AS total FROM matriculas WHERE tutor_id = $1 AND estado = 'ACTIVO'",
+      [id]
+    );
+    const totalActivas = parseInt(matriculasActivas.rows[0].total, 10);
+
     await client.query("UPDATE usuarios SET activo = false WHERE id = $1", [tutor.rows[0].usuario_id]);
 
     await client.query('COMMIT');
-    return { message: "Tutor eliminado" };
+    return {
+      message: "Tutor desactivado",
+      matriculas_activas: totalActivas,
+    };
   } catch (error) {
     await client.query('ROLLBACK');
     throw error;
@@ -24,19 +37,46 @@ export const eliminarTutor = async (id) => {
   }
 };
 
-export const listarTutores = async () => {
+// Alias retro-compatible: el endpoint sigue siendo DELETE /tutores/:id pero
+// ahora hace soft-delete explícitamente
+export const eliminarTutor = desactivarTutor;
+
+/**
+ * Reactivar un tutor desactivado
+ */
+export const reactivarTutor = async (id) => {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+
+    const tutor = await client.query("SELECT usuario_id FROM tutores WHERE id = $1", [id]);
+    if (tutor.rowCount === 0) throw new Error("Tutor no encontrado");
+
+    await client.query("UPDATE usuarios SET activo = true WHERE id = $1", [tutor.rows[0].usuario_id]);
+
+    await client.query('COMMIT');
+    return { message: "Tutor reactivado" };
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+export const listarTutores = async ({ incluirInactivos = false } = {}) => {
   const { rows } = await pool.query(`
-    SELECT t.id, t.dni, t.nombres, t.apellidos, t.telefono, t.direccion, 
+    SELECT t.id, t.dni, t.nombres, t.apellidos, t.telefono, t.direccion,
            t.especialidad, t.nivel_id,
-           c.nombre AS ciudad, d.nombre AS distrito, 
+           c.nombre AS ciudad, d.nombre AS distrito,
            n.nombre AS nivel, u.email, u.activo
     FROM tutores t
     JOIN usuarios u ON u.id = t.usuario_id
     LEFT JOIN ciudades c ON c.id = t.ciudad_id
     LEFT JOIN distritos d ON d.id = t.distrito_id
     LEFT JOIN niveles n ON n.id = t.nivel_id
-    WHERE u.activo = true
-    ORDER BY t.id DESC
+    ${incluirInactivos ? '' : 'WHERE u.activo = true'}
+    ORDER BY u.activo DESC, t.id DESC
   `);
   return rows;
 };

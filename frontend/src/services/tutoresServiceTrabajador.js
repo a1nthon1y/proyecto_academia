@@ -12,10 +12,9 @@ export async function actualizarTutorCompleto(id, data) {
   return await makePutRequest(`/api/tutores/${id}`, data);
 }
 
-// Listar todos los tutores (ADMIN/TRABAJADOR)
-// GET /api/tutores
-export async function listarTutores() {
-  return await makeGetRequest('/api/tutores');
+// Listar tutores. Por defecto solo trae los activos; pasa true para incluir inactivos.
+export async function listarTutores(incluirInactivos = false) {
+  return await makeGetRequest(`/api/tutores${incluirInactivos ? '?incluirInactivos=true' : ''}`);
 }
 
 // Obtener un tutor específico
@@ -36,11 +35,17 @@ export async function actualizarTutor(id, data) {
   return await makePutRequest(`/api/tutores/${id}`, data);
 }
 
-// Eliminar tutor (ADMIN/TRABAJADOR)
-// DELETE /api/tutores/:id
-export async function eliminarTutor(id) {
+// Desactivar tutor (soft delete). El backend devuelve matriculas_activas asociadas.
+export async function desactivarTutor(id) {
   return await makeDeleteRequest(`/api/tutores/${id}`);
 }
+
+export async function reactivarTutor(id) {
+  return await makePutRequest(`/api/tutores/${id}/reactivar`, {});
+}
+
+// Alias retro-compatible
+export const eliminarTutor = desactivarTutor;
 
 // Obtener disponibilidad horaria semanal + carga de matrículas activas
 // GET /api/tutores/:id/disponibilidad

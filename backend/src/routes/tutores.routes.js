@@ -7,7 +7,8 @@ import {
   registrarDisponibilidad,
   listarDisponibilidad,
   crearTutor,
-  eliminarTutor
+  eliminarTutor,
+  reactivarTutor
 } from "../controllers/tutores.controller.js";
 
 import { auth } from "../middlewares/auth.middleware.js";
@@ -39,9 +40,15 @@ router.put("/:id",
 );
 
 router.delete("/:id",
-  allowRoles(1),
-  logAction((req) => `ELIMINÓ tutor ID: ${req.params.id}`),
+  allowRoles(1, 2),
+  logAction((req) => `Desactivó tutor ID: ${req.params.id}`),
   eliminarTutor
+);
+
+router.put("/:id/reactivar",
+  allowRoles(1, 2),
+  logAction((req) => `Reactivó tutor ID: ${req.params.id}`),
+  reactivarTutor
 );
 
 // ADMIN (1) y TRABAJADOR (2)
