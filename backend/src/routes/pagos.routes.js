@@ -38,24 +38,24 @@ router.get(
 );
 
 // TUTORES
-// ADMIN (1)
+// ADMIN (1) y TRABAJADOR (2)
 router.post(
   "/tutores/generar",
-  allowRoles(1),
+  allowRoles(1, 2),
   logAction((req) => `Generó pagos para tutores (Corte mensual)`),
   generarPagoTutor
 );
 
 router.post(
   "/tutores/pagar",
-  allowRoles(1),
+  allowRoles(1, 2),
   logAction((req) => `Registró pago a tutor ID: ${req.body.tutor_id}`),
   pagarTutor
 );
 
 router.get(
   "/tutores",
-  allowRoles(1),
+  allowRoles(1, 2),
   listarPagosTutores
 );
 
