@@ -16,7 +16,7 @@ import { listarTutores } from '@/services/tutoresServiceTrabajador';
 import { listarContratos } from '@/services/contratosService';
 import {
   DollarSign, Plus, Receipt, Users, Calendar,
-  CheckCircle2, AlertCircle, Wallet, Calculator,
+  CheckCircle2, AlertCircle, Wallet, Calculator, Search,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -383,9 +383,9 @@ function FormGenerarOpagarTutor({ onSuccess, onCancel }) {
 }
 
 function TablaPagosPadres({ pagos, loading }) {
-  if (loading) {
-    return <div className="p-12 flex justify-center"><LoadingSpinner /></div>;
-  }
+  const [search, setSearch] = useState('');
+
+  if (loading) return <div className="p-12 flex justify-center"><LoadingSpinner /></div>;
   if (!pagos || pagos.length === 0) {
     return (
       <div className="p-12 text-center text-slate-500">
@@ -395,54 +395,83 @@ function TablaPagosPadres({ pagos, loading }) {
     );
   }
 
-  const total = pagos.reduce((s, p) => s + Number(p.monto || 0), 0);
+  const filtrados = search.trim()
+    ? pagos.filter((p) => {
+        const s = search.trim().toLowerCase();
+        return (p.padre || '').toLowerCase().includes(s) ||
+               (p.alumno || '').toLowerCase().includes(s) ||
+               String(p.id).includes(s);
+      })
+    : pagos;
+
+  const total = filtrados.reduce((s, p) => s + Number(p.monto || 0), 0);
 
   return (
-    <div className="overflow-x-auto">
-      <div className="px-6 py-3 bg-navy-50/50 border-b border-slate-200 flex items-center justify-between">
+    <div>
+      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
         <span className="text-xs text-slate-600 font-medium">
-          {pagos.length} {pagos.length === 1 ? 'pago' : 'pagos'} registrados
+          {filtrados.length} de {pagos.length} {pagos.length === 1 ? 'pago' : 'pagos'}
+          {filtrados.length < pagos.length && (
+            <span className="ml-2 font-semibold text-navy-900">· Total filtrado: {fmtMoney(total)}</span>
+          )}
         </span>
-        <span className="text-sm font-semibold text-navy-900">
-          Total: {fmtMoney(total)}
-        </span>
+        <div className="flex items-center gap-3">
+          {!search && (
+            <span className="text-sm font-semibold text-navy-900">Total: {fmtMoney(pagos.reduce((s, p) => s + Number(p.monto || 0), 0))}</span>
+          )}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <input
+              type="search"
+              placeholder="Padre, alumno, #ID…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-56 pl-8 pr-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-navy-500 focus:ring-2 focus:ring-navy-100 outline-none"
+            />
+          </div>
+        </div>
       </div>
-      <table className="w-full text-sm text-left">
-        <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-          <tr>
-            <th className="px-6 py-3">#</th>
-            <th className="px-6 py-3">Padre</th>
-            <th className="px-6 py-3">Alumno</th>
-            <th className="px-6 py-3">Monto</th>
-            <th className="px-6 py-3">Fecha</th>
-            <th className="px-6 py-3">Estado</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {pagos.map((p) => (
-            <tr key={p.id} className="hover:bg-slate-50 transition">
-              <td className="px-6 py-3 text-slate-500 font-mono text-xs">#{p.id}</td>
-              <td className="px-6 py-3 font-medium text-slate-800">{p.padre || '-'}</td>
-              <td className="px-6 py-3 text-slate-600">{p.alumno || '-'}</td>
-              <td className="px-6 py-3 font-semibold text-emerald-700">{fmtMoney(p.monto)}</td>
-              <td className="px-6 py-3 text-slate-600">{fmtDate(p.fecha_pago)}</td>
-              <td className="px-6 py-3">
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                  <CheckCircle2 className="h-3 w-3" /> {p.estado || 'PAGADO'}
-                </span>
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3">#</th>
+              <th className="px-4 py-3">Padre</th>
+              <th className="px-4 py-3">Alumno</th>
+              <th className="px-4 py-3">Monto</th>
+              <th className="px-4 py-3 hidden md:table-cell">Fecha</th>
+              <th className="px-4 py-3">Estado</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filtrados.length === 0 ? (
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400 text-sm">Sin resultados para "{search}"</td></tr>
+            ) : filtrados.map((p) => (
+              <tr key={p.id} className="hover:bg-slate-50 transition">
+                <td className="px-4 py-3 text-slate-500 font-mono text-xs">#{p.id}</td>
+                <td className="px-4 py-3 font-medium text-slate-800">{p.padre || '-'}</td>
+                <td className="px-4 py-3 text-slate-600">{p.alumno || '-'}</td>
+                <td className="px-4 py-3 font-semibold text-emerald-700">{fmtMoney(p.monto)}</td>
+                <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{fmtDate(p.fecha_pago)}</td>
+                <td className="px-4 py-3">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                    <CheckCircle2 className="h-3 w-3" /> {p.estado || 'PAGADO'}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
 
 function TablaPagosTutores({ pagos, loading }) {
-  if (loading) {
-    return <div className="p-12 flex justify-center"><LoadingSpinner /></div>;
-  }
+  const [search, setSearch] = useState('');
+  const [filtroPeriodo, setFiltroPeriodo] = useState('');
+
+  if (loading) return <div className="p-12 flex justify-center"><LoadingSpinner /></div>;
   if (!pagos || pagos.length === 0) {
     return (
       <div className="p-12 text-center text-slate-500">
@@ -452,53 +481,84 @@ function TablaPagosTutores({ pagos, loading }) {
     );
   }
 
-  const total = pagos.reduce((s, p) => s + Number(p.monto || 0), 0);
+  const periodos = [...new Set((pagos || []).map((p) => p.periodo).filter(Boolean))];
+
+  const filtrados = pagos.filter((p) => {
+    const s = search.trim().toLowerCase();
+    const matchSearch = !s ||
+      (p.tutor || '').toLowerCase().includes(s) ||
+      String(p.id).includes(s);
+    const matchPeriodo = !filtroPeriodo || p.periodo === filtroPeriodo;
+    return matchSearch && matchPeriodo;
+  });
+
+  const total = filtrados.reduce((s, p) => s + Number(p.monto || 0), 0);
 
   return (
-    <div className="overflow-x-auto">
-      <div className="px-6 py-3 bg-navy-50/50 border-b border-slate-200 flex items-center justify-between">
+    <div>
+      <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
         <span className="text-xs text-slate-600 font-medium">
-          {pagos.length} {pagos.length === 1 ? 'liquidación' : 'liquidaciones'}
+          {filtrados.length} de {pagos.length} liquidaciones
         </span>
-        <span className="text-sm font-semibold text-navy-900">
-          Total: {fmtMoney(total)}
-        </span>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-semibold text-navy-900">Total: {fmtMoney(total)}</span>
+          {periodos.length > 1 && (
+            <select
+              value={filtroPeriodo}
+              onChange={(e) => setFiltroPeriodo(e.target.value)}
+              className="text-sm rounded-lg border border-slate-300 px-2 py-1.5 focus:border-navy-500 focus:ring-2 focus:ring-navy-100 outline-none"
+            >
+              <option value="">Todos los períodos</option>
+              {periodos.map((p) => <option key={p} value={p}>{p}</option>)}
+            </select>
+          )}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <input
+              type="search"
+              placeholder="Tutor, #ID…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-48 pl-8 pr-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-navy-500 focus:ring-2 focus:ring-navy-100 outline-none"
+            />
+          </div>
+        </div>
       </div>
-      <table className="w-full text-sm text-left">
-        <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
-          <tr>
-            <th className="px-6 py-3">#</th>
-            <th className="px-6 py-3">Tutor</th>
-            <th className="px-6 py-3">Período</th>
-            <th className="px-6 py-3">Monto</th>
-            <th className="px-6 py-3">Fecha</th>
-            <th className="px-6 py-3">Estado</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {pagos.map((p) => (
-            <tr key={p.id} className="hover:bg-slate-50 transition">
-              <td className="px-6 py-3 text-slate-500 font-mono text-xs">#{p.id}</td>
-              <td className="px-6 py-3 font-medium text-slate-800">{p.tutor || `Tutor ${p.tutor_id}`}</td>
-              <td className="px-6 py-3 text-slate-600">{p.periodo || '-'}</td>
-              <td className="px-6 py-3 font-semibold text-navy-700">{fmtMoney(p.monto)}</td>
-              <td className="px-6 py-3 text-slate-600">{fmtDate(p.fecha_pago)}</td>
-              <td className="px-6 py-3">
-                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
-                  p.estado === 'PAGADO'
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-amber-100 text-amber-700'
-                }`}>
-                  {p.estado === 'PAGADO'
-                    ? <CheckCircle2 className="h-3 w-3" />
-                    : <AlertCircle className="h-3 w-3" />}
-                  {p.estado || 'PENDIENTE'}
-                </span>
-              </td>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-slate-50 text-slate-700 font-semibold border-b border-slate-200">
+            <tr>
+              <th className="px-4 py-3">#</th>
+              <th className="px-4 py-3">Tutor</th>
+              <th className="px-4 py-3 hidden md:table-cell">Período</th>
+              <th className="px-4 py-3">Monto</th>
+              <th className="px-4 py-3 hidden md:table-cell">Fecha</th>
+              <th className="px-4 py-3">Estado</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-slate-100">
+            {filtrados.length === 0 ? (
+              <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-400 text-sm">Sin resultados</td></tr>
+            ) : filtrados.map((p) => (
+              <tr key={p.id} className="hover:bg-slate-50 transition">
+                <td className="px-4 py-3 text-slate-500 font-mono text-xs">#{p.id}</td>
+                <td className="px-4 py-3 font-medium text-slate-800">{p.tutor || `Tutor ${p.tutor_id}`}</td>
+                <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{p.periodo || '-'}</td>
+                <td className="px-4 py-3 font-semibold text-navy-700">{fmtMoney(p.monto)}</td>
+                <td className="px-4 py-3 text-slate-600 hidden md:table-cell">{fmtDate(p.fecha_pago)}</td>
+                <td className="px-4 py-3">
+                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ${
+                    p.estado === 'PAGADO' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                  }`}>
+                    {p.estado === 'PAGADO' ? <CheckCircle2 className="h-3 w-3" /> : <AlertCircle className="h-3 w-3" />}
+                    {p.estado || 'PENDIENTE'}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }

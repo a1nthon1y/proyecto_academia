@@ -1,16 +1,24 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useMatriculas } from '@/hooks/useMatriculas';
 import { useCambiarEstadoMatricula, useEliminarMatricula } from '@/hooks/useMatriculasMutations';
 import { usePermissions } from '@/hooks/usePermissions';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { DataTable } from '@/components/tables/DataTable';
-import { Calendar, DollarSign, User, GraduationCap, Edit2, Trash2, UserPlus, Printer, AlertCircle, ClipboardList } from 'lucide-react';
+import { Calendar, DollarSign, GraduationCap, Edit2, Trash2, UserPlus, Printer, AlertCircle, ClipboardList, Search, X } from 'lucide-react';
 import { ModalBuscadorTutor } from './ModalBuscadorTutor';
 import { ConstanciaMatricula } from './ConstanciaMatricula';
 import { useActualizarMatricula } from '@/hooks/useMatriculasMutations';
 import Swal from 'sweetalert2';
+
+const ESTADOS = ['ACTIVO', 'PENDIENTE', 'FINALIZADO', 'CANCELADO'];
+const ESTADO_COLORS = {
+  ACTIVO:    'bg-green-100 text-green-700 border-green-200',
+  PENDIENTE: 'bg-orange-100 text-orange-700 border-orange-200',
+  FINALIZADO:'bg-blue-100 text-blue-700 border-blue-200',
+  CANCELADO: 'bg-red-100 text-red-700 border-red-200',
+};
 
 /**
  * Componente que muestra la lista de matrículas con información completa
@@ -25,6 +33,24 @@ export function ListaMatriculas({ onEdit }) {
 
   const [tutorModal, setTutorModal] = useState({ visible: false, matriculaId: null, alumnoNombre: '' });
   const [selectedForPrint, setSelectedForPrint] = useState(null);
+  const [search, setSearch] = useState('');
+  const [filtroEstado, setFiltroEstado] = useState('');
+
+  const matriculasFiltradas = useMemo(() => {
+    let list = matriculas || [];
+    if (filtroEstado) list = list.filter((m) => m.estado === filtroEstado);
+    if (search.trim()) {
+      const s = search.trim().toLowerCase();
+      list = list.filter((m) =>
+        (m.alumno || '').toLowerCase().includes(s) ||
+        (m.alumno_dni || '').toLowerCase().includes(s) ||
+        (m.tutor || '').toLowerCase().includes(s) ||
+        (m.padre || '').toLowerCase().includes(s) ||
+        (m.curso || '').toLowerCase().includes(s)
+      );
+    }
+    return list;
+  }, [matriculas, search, filtroEstado]);
 
   const handleCambiarEstado = async (id, nuevoEstado) => {
     const result = await Swal.fire({
@@ -291,9 +317,62 @@ export function ListaMatriculas({ onEdit }) {
     },
   ];
 
+  const hayFiltros = search.trim() || filtroEstado;
+
   return (
     <>
-      <DataTable columns={columns} data={matriculas} isLoading={isLoading} />
+      {/* Barra de filtros */}
+      <div className="rounded-t-xl border border-b-0 border-slate-200 bg-white px-4 py-3 flex items-center justify-between flex-wrap gap-3">
+        {/* Filtros por estado */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-xs text-slate-500 font-medium mr-1">Estado:</span>
+          <button
+            onClick={() => setFiltroEstado('')}
+            className={`px-2.5 py-1 rounded-full text-xs font-medium border transition ${!filtroEstado ? 'bg-slate-800 text-white border-slate-800' : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}
+          >
+            Todos
+          </button>
+          {ESTADOS.map((e) => (
+            <button
+              key={e}
+              onClick={() => setFiltroEstado(filtroEstado === e ? '' : e)}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium border transition ${filtroEstado === e ? ESTADO_COLORS[e] : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'}`}
+            >
+              {e}
+              {filtroEstado === e && (
+                <span className="ml-1 opacity-70">({matriculasFiltradas.length})</span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {/* Búsqueda */}
+        <div className="flex items-center gap-2">
+          {hayFiltros && (
+            <button
+              onClick={() => { setSearch(''); setFiltroEstado(''); }}
+              className="text-xs text-slate-500 hover:text-slate-700 flex items-center gap-1 transition"
+            >
+              <X className="h-3 w-3" /> Limpiar
+            </button>
+          )}
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+            <input
+              type="search"
+              placeholder="Alumno, DNI, tutor, padre, curso…"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-64 pl-8 pr-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-navy-500 focus:ring-2 focus:ring-navy-100 outline-none"
+            />
+          </div>
+          <span className="text-xs text-slate-500 whitespace-nowrap">
+            {matriculasFiltradas.length} de {(matriculas || []).length}
+          </span>
+        </div>
+      </div>
+
+      <DataTable columns={columns} data={matriculasFiltradas} isLoading={isLoading} />
       <ModalBuscadorTutor
         visible={tutorModal.visible}
         onClose={() => setTutorModal({ ...tutorModal, visible: false })}
