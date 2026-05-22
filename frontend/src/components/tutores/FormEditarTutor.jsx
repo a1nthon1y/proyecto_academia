@@ -11,8 +11,27 @@ import { useBancos } from '@/hooks/useBancos';
 import { useNiveles } from '@/hooks/useNiveles';
 import { obtenerTutor } from '@/services/tutoresServiceTrabajador';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { FormErrorSummary } from '@/components/shared/FormErrorSummary';
+import { useScrollToError } from '@/hooks/useScrollToError';
 import { User, Mail, Phone, MapPin, FileText, GraduationCap, DollarSign, MapPinned, Building2, Book, Save, X } from 'lucide-react';
 import { z } from 'zod';
+
+const FIELD_LABELS = {
+    dni: 'DNI',
+    nombres: 'Nombres',
+    apellidos: 'Apellidos',
+    email: 'Email',
+    telefono: 'Teléfono',
+    direccion: 'Dirección',
+    especialidad: 'Especialidad',
+    nivel_id: 'Nivel educativo',
+    nivel_educativo_id: 'Nivel educativo',
+    tarifa_por_sesion: 'Tarifa',
+    ciudad_id: 'Ciudad',
+    distrito_id: 'Distrito',
+    banco_id: 'Banco',
+    cuenta_bancaria: 'Cuenta bancaria',
+};
 
 // Esquema parcial para editar (sin password obligatorio y DNI opcional si no cambia)
 const tutorEditSchema = tutorSchema.extend({
@@ -43,9 +62,11 @@ export function FormEditarTutor({ tutor, onSuccess, onCancel }) {
         watch,
         setValue,
         reset,
-        formState: { errors, isSubmitting },
+        formState: { errors, isSubmitting, isSubmitted },
     } = useForm({
         resolver: zodResolver(tutorEditSchema),
+        mode: 'onBlur',
+        reValidateMode: 'onChange',
         defaultValues: {
             dni: tutor.dni || '',
             nombres: tutor.nombres || '',
@@ -64,6 +85,8 @@ export function FormEditarTutor({ tutor, onSuccess, onCancel }) {
     });
 
     const ciudadId = watch('ciudad_id');
+
+    useScrollToError(errors, isSubmitted);
 
     // Cuando llegan los datos completos del tutor, repoblamos el form.
     // Dependemos del ID (primitivo) para evitar loops si la referencia
@@ -162,6 +185,11 @@ export function FormEditarTutor({ tutor, onSuccess, onCancel }) {
                 )}
             </div>
 
+            {/* Resumen de errores tras intento de submit */}
+            {isSubmitted && Object.keys(errors).length > 0 && (
+                <FormErrorSummary errors={errors} fieldLabels={FIELD_LABELS} />
+            )}
+
             <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                 {/* Datos Personales */}
                 <div className="mb-6">
@@ -171,25 +199,41 @@ export function FormEditarTutor({ tutor, onSuccess, onCancel }) {
                     </h3>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label className="label">DNI</label>
+                            <label className="label">DNI <span className="text-red-500">*</span></label>
                             <input
                                 type="text"
                                 {...register('dni')}
                                 maxLength={8}
-                                className="input"
+                                inputMode="numeric"
+                                className={errors.dni ? 'input input-error' : 'input'}
+                                aria-invalid={!!errors.dni}
                             />
-                            {errors.dni && <p className="error-msg">{errors.dni.message}</p>}
+                            {errors.dni ? (
+                                <p className="error-msg">{errors.dni.message}</p>
+                            ) : (
+                                <p className="hint">8 dígitos (Ej: 12345678)</p>
+                            )}
                         </div>
 
                         <div>
-                            <label className="label">Nombres</label>
-                            <input type="text" {...register('nombres')} className="input" />
+                            <label className="label">Nombres <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                {...register('nombres')}
+                                className={errors.nombres ? 'input input-error' : 'input'}
+                                aria-invalid={!!errors.nombres}
+                            />
                             {errors.nombres && <p className="error-msg">{errors.nombres.message}</p>}
                         </div>
 
                         <div className="sm:col-span-2">
-                            <label className="label">Apellidos</label>
-                            <input type="text" {...register('apellidos')} className="input" />
+                            <label className="label">Apellidos <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                {...register('apellidos')}
+                                className={errors.apellidos ? 'input input-error' : 'input'}
+                                aria-invalid={!!errors.apellidos}
+                            />
                             {errors.apellidos && <p className="error-msg">{errors.apellidos.message}</p>}
                         </div>
                     </div>
@@ -205,15 +249,36 @@ export function FormEditarTutor({ tutor, onSuccess, onCancel }) {
                         <div>
                             <label className="label">Email</label>
                             <input type="email" {...register('email')} className="input" disabled />
-                            <p className="text-xs text-slate-500 mt-1">El email no se puede cambiar directamente.</p>
+                            <p className="hint">El email no se puede cambiar directamente.</p>
                         </div>
                         <div>
-                            <label className="label">Teléfono</label>
-                            <input type="tel" {...register('telefono')} className="input" />
+                            <label className="label">Teléfono <span className="text-red-500">*</span></label>
+                            <input
+                                type="tel"
+                                {...register('telefono')}
+                                inputMode="tel"
+                                className={errors.telefono ? 'input input-error' : 'input'}
+                                aria-invalid={!!errors.telefono}
+                            />
+                            {errors.telefono ? (
+                                <p className="error-msg">{errors.telefono.message}</p>
+                            ) : (
+                                <p className="hint">Celular: 9 dígitos (Ej: 987654321)</p>
+                            )}
                         </div>
                         <div className="sm:col-span-2">
-                            <label className="label">Dirección</label>
-                            <textarea {...register('direccion')} rows={2} className="input" />
+                            <label className="label">Dirección <span className="text-red-500">*</span></label>
+                            <textarea
+                                {...register('direccion')}
+                                rows={2}
+                                className={errors.direccion ? 'input input-error' : 'input'}
+                                aria-invalid={!!errors.direccion}
+                            />
+                            {errors.direccion ? (
+                                <p className="error-msg">{errors.direccion.message}</p>
+                            ) : (
+                                <p className="hint">Mín. 10 caracteres (Ej: Av. Los Álamos 123, Cayma)</p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -286,8 +351,19 @@ export function FormEditarTutor({ tutor, onSuccess, onCancel }) {
                             <label className="label">Tarifa (S/.)</label>
                             <div className="relative">
                                 <DollarSign className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                                <input type="number" step="0.01" {...register('tarifa_por_sesion')} className="input pl-10" />
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    {...register('tarifa_por_sesion')}
+                                    className={errors.tarifa_por_sesion ? 'input input-error pl-10' : 'input pl-10'}
+                                    aria-invalid={!!errors.tarifa_por_sesion}
+                                />
                             </div>
+                            {errors.tarifa_por_sesion ? (
+                                <p className="error-msg">{errors.tarifa_por_sesion.message}</p>
+                            ) : (
+                                <p className="hint">Costo por sesión en soles (Ej: 25.50)</p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -319,8 +395,10 @@ export function FormEditarTutor({ tutor, onSuccess, onCancel }) {
             <style jsx>{`
                 .label { @apply block text-sm font-medium text-slate-700 mb-1.5; }
                 .input { @apply w-full rounded-lg border border-slate-300 py-2.5 px-3 text-sm outline-none transition focus:border-navy-500 focus:ring-2 focus:ring-navy-100; }
+                .input-error { @apply border-red-400 focus:border-red-500 focus:ring-red-100; }
                 .select { @apply w-full rounded-lg border border-slate-300 py-2.5 px-3 text-sm outline-none transition focus:border-navy-500 focus:ring-2 focus:ring-navy-100; }
-                .error-msg { @apply mt-1 text-xs text-red-600; }
+                .error-msg { @apply mt-1 text-xs text-red-600 flex items-center gap-1; }
+                .hint { @apply mt-1 text-xs text-slate-400; }
             `}</style>
         </form>
     );

@@ -11,6 +11,25 @@ import { useNiveles } from '@/hooks/useNiveles';
 import { CredencialesDisplay } from '@/components/shared/CredencialesDisplay';
 import { User, Mail, Phone, MapPin, Lock, Key, FileText, GraduationCap, DollarSign, MapPinned, Building2, Book, AtSign } from 'lucide-react';
 import { previewUsername } from '@/utils/username';
+import { FormErrorSummary } from '@/components/shared/FormErrorSummary';
+import { useScrollToError } from '@/hooks/useScrollToError';
+
+const FIELD_LABELS = {
+    dni: 'DNI',
+    nombres: 'Nombres',
+    apellidos: 'Apellidos',
+    email: 'Email',
+    telefono: 'Teléfono',
+    direccion: 'Dirección',
+    especialidad: 'Especialidad',
+    nivel_id: 'Nivel educativo',
+    tarifa_por_sesion: 'Tarifa',
+    ciudad_id: 'Ciudad',
+    distrito_id: 'Distrito',
+    banco_id: 'Banco',
+    cuenta_bancaria: 'Cuenta bancaria',
+    password: 'Contraseña',
+};
 
 /**
  * Formulario para registrar un tutor
@@ -30,9 +49,11 @@ export function FormCrearTutor({ onSuccess }) {
         handleSubmit,
         watch,
         reset,
-        formState: { errors, isSubmitting },
+        formState: { errors, isSubmitting, isSubmitted },
     } = useForm({
         resolver: zodResolver(tutorSchema),
+        mode: 'onBlur',
+        reValidateMode: 'onChange',
         defaultValues: {
             dni: '',
             nombres: '',
@@ -61,6 +82,8 @@ export function FormCrearTutor({ onSuccess }) {
         apellidos: apellidosWatch,
         rolId: 4, // TUTOR
     });
+
+    useScrollToError(errors, isSubmitted);
 
     const onSubmit = async (data) => {
         try {
@@ -133,6 +156,11 @@ export function FormCrearTutor({ onSuccess }) {
                         Complete la información personal y profesional del docente
                     </p>
                 </div>
+
+                {/* Resumen de errores tras intento de submit */}
+                {isSubmitted && Object.keys(errors).length > 0 && (
+                    <FormErrorSummary errors={errors} fieldLabels={FIELD_LABELS} />
+                )}
 
                 {/* Form Card */}
                 <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">

@@ -4,8 +4,18 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { padreSchema } from '@/schemas/personasSchemas';
 import { useActualizarPadreCompleto } from '@/hooks/usePadresMutations';
+import { FormErrorSummary } from '@/components/shared/FormErrorSummary';
+import { useScrollToError } from '@/hooks/useScrollToError';
 import { User, Mail, Phone, FileText, Save, X } from 'lucide-react';
 import { z } from 'zod';
+
+const FIELD_LABELS = {
+    dni: 'DNI',
+    nombres: 'Nombres',
+    apellidos: 'Apellidos',
+    email: 'Email',
+    telefono: 'Teléfono',
+};
 
 // Esquema para editar (password y dni opcionales)
 const padreEditSchema = padreSchema.extend({
@@ -19,9 +29,11 @@ export function FormEditarPadre({ padre, onSuccess, onCancel }) {
     const {
         register,
         handleSubmit,
-        formState: { errors, isSubmitting },
+        formState: { errors, isSubmitting, isSubmitted },
     } = useForm({
         resolver: zodResolver(padreEditSchema),
+        mode: 'onBlur',
+        reValidateMode: 'onChange',
         defaultValues: {
             dni: padre.dni || '',
             nombres: padre.nombres || '',
@@ -30,6 +42,8 @@ export function FormEditarPadre({ padre, onSuccess, onCancel }) {
             telefono: padre.telefono || '',
         },
     });
+
+    useScrollToError(errors, isSubmitted);
 
     const onSubmit = async (data) => {
         try {
@@ -73,6 +87,11 @@ export function FormEditarPadre({ padre, onSuccess, onCancel }) {
                 )}
             </div>
 
+            {/* Resumen de errores tras intento de submit */}
+            {isSubmitted && Object.keys(errors).length > 0 && (
+                <FormErrorSummary errors={errors} fieldLabels={FIELD_LABELS} />
+            )}
+
             <div className="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
                 {/* Datos Personales */}
                 <div className="mb-6">
@@ -82,25 +101,41 @@ export function FormEditarPadre({ padre, onSuccess, onCancel }) {
                     </h3>
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
-                            <label className="label">DNI</label>
+                            <label className="label">DNI <span className="text-red-500">*</span></label>
                             <input
                                 type="text"
                                 {...register('dni')}
                                 maxLength={8}
-                                className="input"
+                                inputMode="numeric"
+                                className={errors.dni ? 'input input-error' : 'input'}
+                                aria-invalid={!!errors.dni}
                             />
-                            {errors.dni && <p className="error-msg">{errors.dni.message}</p>}
+                            {errors.dni ? (
+                                <p className="error-msg">{errors.dni.message}</p>
+                            ) : (
+                                <p className="hint">8 dígitos (Ej: 12345678)</p>
+                            )}
                         </div>
 
                         <div>
-                            <label className="label">Nombres</label>
-                            <input type="text" {...register('nombres')} className="input" />
+                            <label className="label">Nombres <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                {...register('nombres')}
+                                className={errors.nombres ? 'input input-error' : 'input'}
+                                aria-invalid={!!errors.nombres}
+                            />
                             {errors.nombres && <p className="error-msg">{errors.nombres.message}</p>}
                         </div>
 
                         <div className="sm:col-span-2">
-                            <label className="label">Apellidos</label>
-                            <input type="text" {...register('apellidos')} className="input" />
+                            <label className="label">Apellidos <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                {...register('apellidos')}
+                                className={errors.apellidos ? 'input input-error' : 'input'}
+                                aria-invalid={!!errors.apellidos}
+                            />
                             {errors.apellidos && <p className="error-msg">{errors.apellidos.message}</p>}
                         </div>
                     </div>
@@ -116,12 +151,22 @@ export function FormEditarPadre({ padre, onSuccess, onCancel }) {
                         <div>
                             <label className="label">Email</label>
                             <input type="email" {...register('email')} className="input" disabled />
-                            <p className="text-xs text-slate-500 mt-1">El email no se puede cambiar directamente.</p>
+                            <p className="hint">El email no se puede cambiar directamente.</p>
                         </div>
                         <div>
-                            <label className="label">Teléfono</label>
-                            <input type="tel" {...register('telefono')} className="input" />
-                            {errors.telefono && <p className="error-msg">{errors.telefono.message}</p>}
+                            <label className="label">Teléfono <span className="text-red-500">*</span></label>
+                            <input
+                                type="tel"
+                                {...register('telefono')}
+                                inputMode="tel"
+                                className={errors.telefono ? 'input input-error' : 'input'}
+                                aria-invalid={!!errors.telefono}
+                            />
+                            {errors.telefono ? (
+                                <p className="error-msg">{errors.telefono.message}</p>
+                            ) : (
+                                <p className="hint">Celular: 9 dígitos (Ej: 987654321)</p>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -152,7 +197,9 @@ export function FormEditarPadre({ padre, onSuccess, onCancel }) {
             <style jsx>{`
                 .label { @apply block text-sm font-medium text-slate-700 mb-1.5; }
                 .input { @apply w-full rounded-lg border border-slate-300 py-2.5 px-3 text-sm outline-none transition focus:border-navy-500 focus:ring-2 focus:ring-navy-100; }
-                .error-msg { @apply mt-1 text-xs text-red-600; }
+                .input-error { @apply border-red-400 focus:border-red-500 focus:ring-red-100; }
+                .error-msg { @apply mt-1 text-xs text-red-600 flex items-center gap-1; }
+                .hint { @apply mt-1 text-xs text-slate-400; }
             `}</style>
         </form>
     );

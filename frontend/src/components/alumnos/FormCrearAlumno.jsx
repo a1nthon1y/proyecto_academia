@@ -7,8 +7,22 @@ import { useCrearAlumno } from '@/hooks/useAlumnosMutations';
 import { usePadres } from '@/hooks/usePadresTrabajador';
 import { useUbicacion } from '@/hooks/useUbicacion';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { FormErrorSummary } from '@/components/shared/FormErrorSummary';
+import { useScrollToError } from '@/hooks/useScrollToError';
 import { User, Calendar, BookOpen, MapPinned, GraduationCap, Users, Building2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+const FIELD_LABELS = {
+  dni: 'DNI',
+  nombres: 'Nombres',
+  apellidos: 'Apellidos',
+  fecha_nacimiento: 'Fecha de nacimiento',
+  padre_id: 'Padre de familia',
+  grado: 'Grado',
+  nivel_id: 'Nivel educativo',
+  ciudad_id: 'Ciudad',
+  distrito_id: 'Distrito',
+};
 
 /**
  * Formulario para crear un alumno con validación completa y nuevo diseño
@@ -21,11 +35,13 @@ export function FormCrearAlumno({ onSuccess }) {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isSubmitted },
     reset,
     watch,
   } = useForm({
     resolver: zodResolver(alumnoSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: {
       dni: '',
       nombres: '',
@@ -40,6 +56,8 @@ export function FormCrearAlumno({ onSuccess }) {
   });
 
   const ciudadId = watch('ciudad_id');
+
+  useScrollToError(errors, isSubmitted);
 
   const onSubmit = async (data) => {
     try {
@@ -78,6 +96,13 @@ export function FormCrearAlumno({ onSuccess }) {
           Complete la información académica y personal del estudiante
         </p>
       </div>
+
+      {/* Resumen de errores tras intento de submit */}
+      {isSubmitted && Object.keys(errors).length > 0 && (
+        <div className="mb-6">
+          <FormErrorSummary errors={errors} fieldLabels={FIELD_LABELS} />
+        </div>
+      )}
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
         {/* Selección de Padre */}

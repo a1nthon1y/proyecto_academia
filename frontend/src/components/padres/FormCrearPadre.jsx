@@ -8,6 +8,17 @@ import { useRegistrarPadreCompleto } from '@/hooks/usePadresMutations';
 import { CredencialesDisplay } from '@/components/shared/CredencialesDisplay';
 import { User, Mail, Phone, MapPin, Lock, Key, FileText, AtSign } from 'lucide-react';
 import { previewUsername } from '@/utils/username';
+import { FormErrorSummary } from '@/components/shared/FormErrorSummary';
+import { useScrollToError } from '@/hooks/useScrollToError';
+
+const FIELD_LABELS = {
+  dni: 'DNI',
+  nombres: 'Nombres',
+  apellidos: 'Apellidos',
+  email: 'Email',
+  telefono: 'Teléfono',
+  password: 'Contraseña',
+};
 
 /**
  * Formulario para registrar un padre de familia
@@ -24,9 +35,11 @@ export function FormCrearPadre({ onSuccess }) {
     handleSubmit,
     watch,
     reset,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, isSubmitted },
   } = useForm({
     resolver: zodResolver(padreSchema),
+    mode: 'onBlur',
+    reValidateMode: 'onChange',
     defaultValues: {
       dni: '',
       nombres: '',
@@ -46,6 +59,8 @@ export function FormCrearPadre({ onSuccess }) {
     apellidos: apellidosWatch,
     rolId: 3, // PADRE
   });
+
+  useScrollToError(errors, isSubmitted);
 
   const onSubmit = async (data) => {
     try {
@@ -105,6 +120,11 @@ export function FormCrearPadre({ onSuccess }) {
             Complete todos los datos obligatorios para crear el usuario y perfil del padre
           </p>
         </div>
+
+        {/* Resumen de errores tras intento de submit */}
+        {isSubmitted && Object.keys(errors).length > 0 && (
+          <FormErrorSummary errors={errors} fieldLabels={FIELD_LABELS} />
+        )}
 
         {/* Form Card */}
         <div className="card">

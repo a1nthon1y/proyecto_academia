@@ -8,8 +8,22 @@ import { useActualizarAlumno } from '@/hooks/useAlumnosMutations';
 import { useUbicacion } from '@/hooks/useUbicacion';
 import { obtenerAlumno } from '@/services/alumnosService';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { FormErrorSummary } from '@/components/shared/FormErrorSummary';
+import { useScrollToError } from '@/hooks/useScrollToError';
 import { User, Calendar, BookOpen, MapPinned, GraduationCap, Building2, Save, X } from 'lucide-react';
 import { useEffect } from 'react';
+
+const FIELD_LABELS = {
+    dni: 'DNI',
+    nombres: 'Nombres',
+    apellidos: 'Apellidos',
+    fecha_nacimiento: 'Fecha de nacimiento',
+    padre_id: 'Padre de familia',
+    grado: 'Grado',
+    nivel_id: 'Nivel educativo',
+    ciudad_id: 'Ciudad',
+    distrito_id: 'Distrito',
+};
 
 export function FormEditarAlumno({ alumno, onSuccess, onCancel }) {
     const { ciudades, distritos, isLoadingCiudades, cargarDistritos } = useUbicacion();
@@ -26,12 +40,14 @@ export function FormEditarAlumno({ alumno, onSuccess, onCancel }) {
     const {
         register,
         handleSubmit,
-        formState: { errors, isSubmitting },
+        formState: { errors, isSubmitting, isSubmitted },
         watch,
         setValue,
         reset,
     } = useForm({
         resolver: zodResolver(alumnoSchema),
+        mode: 'onBlur',
+        reValidateMode: 'onChange',
         defaultValues: {
             dni: alumno.dni || '',
             nombres: alumno.nombres || '',
@@ -46,6 +62,8 @@ export function FormEditarAlumno({ alumno, onSuccess, onCancel }) {
     });
 
     const ciudadId = watch('ciudad_id');
+
+    useScrollToError(errors, isSubmitted);
 
     // Cuando llega el alumno completo, repoblamos el form con todos los IDs.
     // Dependemos del ID (primitivo) para evitar loops infinitos.
@@ -127,6 +145,11 @@ export function FormEditarAlumno({ alumno, onSuccess, onCancel }) {
 
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
+                {/* Resumen de errores tras intento de submit */}
+                {isSubmitted && Object.keys(errors).length > 0 && (
+                    <FormErrorSummary errors={errors} fieldLabels={FIELD_LABELS} />
+                )}
+
                 {/* Datos Identificación */}
                 <div className="form-section">
                     <h3 className="form-section-title">
@@ -137,28 +160,53 @@ export function FormEditarAlumno({ alumno, onSuccess, onCancel }) {
                     <div className="grid gap-6 sm:grid-cols-2">
                         <div>
                             <label className="label">DNI</label>
-                            <input type="text" maxLength={8} {...register('dni')} className="input-field" disabled={true} /> {/* DNI suele ser no editable o requiere permisos especiales */}
-                            {errors.dni && <p className="error-message">{errors.dni.message}</p>}
+                            <input
+                                type="text"
+                                maxLength={8}
+                                {...register('dni')}
+                                className={errors.dni ? 'input-field border-red-400 focus:ring-red-100' : 'input-field'}
+                                disabled
+                            />
+                            {errors.dni ? (
+                                <p className="error-message">{errors.dni.message}</p>
+                            ) : (
+                                <p className="mt-1 text-xs text-slate-400">El DNI no se puede editar</p>
+                            )}
                         </div>
 
                         <div>
-                            <label className="label">Fecha de Nacimiento</label>
+                            <label className="label">Fecha de Nacimiento <span className="text-red-500">*</span></label>
                             <div className="relative">
                                 <Calendar className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                                <input type="date" {...register('fecha_nacimiento')} className="input-field pl-10" />
+                                <input
+                                    type="date"
+                                    {...register('fecha_nacimiento')}
+                                    className={errors.fecha_nacimiento ? 'input-field pl-10 border-red-400 focus:ring-red-100' : 'input-field pl-10'}
+                                    aria-invalid={!!errors.fecha_nacimiento}
+                                />
                             </div>
                             {errors.fecha_nacimiento && <p className="error-message">{errors.fecha_nacimiento.message}</p>}
                         </div>
 
                         <div>
-                            <label className="label">Nombres</label>
-                            <input type="text" {...register('nombres')} className="input-field" />
+                            <label className="label">Nombres <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                {...register('nombres')}
+                                className={errors.nombres ? 'input-field border-red-400 focus:ring-red-100' : 'input-field'}
+                                aria-invalid={!!errors.nombres}
+                            />
                             {errors.nombres && <p className="error-message">{errors.nombres.message}</p>}
                         </div>
 
                         <div>
-                            <label className="label">Apellidos</label>
-                            <input type="text" {...register('apellidos')} className="input-field" />
+                            <label className="label">Apellidos <span className="text-red-500">*</span></label>
+                            <input
+                                type="text"
+                                {...register('apellidos')}
+                                className={errors.apellidos ? 'input-field border-red-400 focus:ring-red-100' : 'input-field'}
+                                aria-invalid={!!errors.apellidos}
+                            />
                             {errors.apellidos && <p className="error-message">{errors.apellidos.message}</p>}
                         </div>
                     </div>
