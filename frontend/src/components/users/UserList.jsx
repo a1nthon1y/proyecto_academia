@@ -8,6 +8,7 @@ import {
   Users, Plus, Search, X, Pencil, Eye, EyeOff,
   Lock, Mail, User as UserIcon, ShieldCheck, Briefcase,
   UserCheck, GraduationCap, CheckCircle, XCircle, AlertCircle,
+  FileText, KeyRound, Save,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
@@ -164,7 +165,7 @@ function UserForm({ initialValues, onSubmit, onCancel, isPending }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
         <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700">
           <AlertCircle className="h-4 w-4 mt-0.5 flex-shrink-0" />
@@ -172,162 +173,148 @@ function UserForm({ initialValues, onSubmit, onCancel, isPending }) {
         </div>
       )}
 
-      {/* Nombres + Apellidos */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            Nombres {!editing && <span className="text-red-500">*</span>}
-          </label>
-          <input
-            type="text"
-            value={form.nombres}
-            onChange={(e) => setForm({ ...form, nombres: e.target.value })}
-            placeholder="Juan Carlos"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-navy-500 focus:ring-2 focus:ring-navy-100 outline-none"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            Apellidos {!editing && <span className="text-red-500">*</span>}
-          </label>
-          <input
-            type="text"
-            value={form.apellidos}
-            onChange={(e) => setForm({ ...form, apellidos: e.target.value })}
-            placeholder="Pérez Gómez"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-navy-500 focus:ring-2 focus:ring-navy-100 outline-none"
-          />
-        </div>
-      </div>
-
-      {/* Email */}
+      {/* ── Datos personales ───────────────────────────── */}
       <div>
-        <label className="block text-xs font-medium text-slate-700 mb-1">
-          Email <span className="text-red-500">*</span>
-        </label>
-        <div className="relative">
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            placeholder="usuario@ejemplo.com"
-            className="w-full pl-9 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-navy-500 focus:ring-2 focus:ring-navy-100 outline-none"
-            required
-          />
-        </div>
-      </div>
-
-      {/* Rol */}
-      <div>
-        <label className="block text-xs font-medium text-slate-700 mb-1">
-          Rol del sistema <span className="text-red-500">*</span>
-        </label>
-        {editing ? (
-          <div className="px-3 py-2 rounded-lg border border-slate-200 bg-slate-50">
-            <BadgeRol rolId={form.rol_id} />
-            <span className="ml-2 text-xs text-slate-500">No se puede cambiar el rol de un usuario existente</span>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-2">
-            {[ROLES_INFO[1], ROLES_INFO[2]].map((r) => {
-              const Icon = r.icon;
-              const selected = form.rol_id === r.id;
-              return (
-                <button
-                  type="button"
-                  key={r.id}
-                  onClick={() => setForm({ ...form, rol_id: r.id })}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition text-sm font-medium ${
-                    selected
-                      ? `${ROL_COLORS[r.color]} ring-2 ring-offset-1 ring-${r.color}-200`
-                      : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
-                  }`}
-                >
-                  <Icon className="h-4 w-4" />
-                  {r.nombre}
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Username */}
-      <div>
-        <label className="block text-xs font-medium text-slate-700 mb-1 flex items-center justify-between">
-          <span>
-            Nombre de usuario
-            {!editing && <span className="ml-1 text-slate-400 font-normal">(opcional)</span>}
-          </span>
-        </label>
-        <div className="relative">
-          <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
-          <input
-            type="text"
-            value={form.username}
-            onChange={(e) => setForm({ ...form, username: e.target.value })}
-            placeholder={usernameAuto || 'autogenerado'}
-            className="w-full pl-9 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-navy-500 focus:ring-2 focus:ring-navy-100 outline-none"
-          />
-        </div>
-        {!editing && !form.username && usernameAuto && (
-          <p className="mt-1 text-xs text-slate-500">
-            Se generará como <span className="font-semibold text-navy-700">{usernameAuto}</span>
-          </p>
-        )}
-        {!editing && !form.username && !usernameAuto && (
-          <p className="mt-1 text-xs text-slate-500">
-            Si lo dejas vacío se generará automáticamente desde el nombre
-          </p>
-        )}
-      </div>
-
-      {/* Password */}
-      {!editing ? (
-        <div>
-          <label className="block text-xs font-medium text-slate-700 mb-1">
-            Contraseña <span className="text-red-500">*</span>
-          </label>
-          <div className="relative">
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+        <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-700">
+          <FileText className="h-3.5 w-3.5" />
+          Datos personales
+        </h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Nombres {!editing && <span className="text-red-500">*</span>}
+            </label>
             <input
-              type={verPassword ? 'text' : 'password'}
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              placeholder="Mínimo 6 caracteres"
-              className="w-full pl-9 pr-10 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-navy-500 focus:ring-2 focus:ring-navy-100 outline-none"
+              type="text"
+              value={form.nombres}
+              onChange={(e) => setForm({ ...form, nombres: e.target.value })}
+              placeholder="Juan Carlos"
+              className="w-full rounded-lg border border-slate-300 py-2.5 px-3 text-sm outline-none transition focus:border-navy-500 focus:ring-2 focus:ring-navy-100"
             />
-            <button
-              type="button"
-              onClick={() => setVerPassword((v) => !v)}
-              className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700"
-            >
-              {verPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Apellidos {!editing && <span className="text-red-500">*</span>}
+            </label>
+            <input
+              type="text"
+              value={form.apellidos}
+              onChange={(e) => setForm({ ...form, apellidos: e.target.value })}
+              placeholder="Pérez Gómez"
+              className="w-full rounded-lg border border-slate-300 py-2.5 px-3 text-sm outline-none transition focus:border-navy-500 focus:ring-2 focus:ring-navy-100"
+            />
           </div>
         </div>
-      ) : (
-        <div>
-          <label className="inline-flex items-center gap-2 cursor-pointer text-sm text-slate-700">
-            <input
-              type="checkbox"
-              checked={cambiarPassword}
-              onChange={(e) => setCambiarPassword(e.target.checked)}
-              className="rounded border-slate-300 text-navy-600 focus:ring-navy-500"
-            />
-            Cambiar contraseña
-          </label>
-          {cambiarPassword && (
-            <div className="relative mt-2">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-slate-400" />
+      </div>
+
+      {/* ── Rol y acceso ───────────────────────────────── */}
+      <div className="border-t border-slate-100 pt-5">
+        <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-700">
+          <ShieldCheck className="h-3.5 w-3.5" />
+          Rol y acceso
+        </h3>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Rol del sistema <span className="text-red-500">*</span>
+            </label>
+            {editing ? (
+              <div className="px-3 py-2.5 rounded-lg border border-slate-200 bg-slate-50 flex items-center gap-2">
+                <BadgeRol rolId={form.rol_id} />
+                <span className="text-xs text-slate-500">No se puede cambiar el rol</span>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                {[ROLES_INFO[1], ROLES_INFO[2]].map((r) => {
+                  const Icon = r.icon;
+                  const selected = form.rol_id === r.id;
+                  return (
+                    <button
+                      type="button"
+                      key={r.id}
+                      onClick={() => setForm({ ...form, rol_id: r.id })}
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition text-sm font-medium ${
+                        selected
+                          ? `${ROL_COLORS[r.color]} ring-2 ring-offset-1 ring-${r.color}-200`
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-slate-400'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4" />
+                      {r.nombre}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Email <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                placeholder="usuario@ejemplo.com"
+                className="w-full pl-10 rounded-lg border border-slate-300 py-2.5 px-3 text-sm outline-none transition focus:border-navy-500 focus:ring-2 focus:ring-navy-100"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Nombre de usuario
+              {!editing && <span className="ml-1 text-slate-400 font-normal">(opcional)</span>}
+            </label>
+            <div className="relative">
+              <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <input
+                type="text"
+                value={form.username}
+                onChange={(e) => setForm({ ...form, username: e.target.value })}
+                placeholder={usernameAuto || 'autogenerado'}
+                className="w-full pl-10 rounded-lg border border-slate-300 py-2.5 px-3 text-sm outline-none transition focus:border-navy-500 focus:ring-2 focus:ring-navy-100"
+              />
+            </div>
+            {!editing && !form.username && usernameAuto && (
+              <p className="mt-1 text-xs text-slate-500">
+                Se generará como <span className="font-semibold text-navy-700">{usernameAuto}</span>
+              </p>
+            )}
+            {!editing && !form.username && !usernameAuto && (
+              <p className="mt-1 text-xs text-slate-500">
+                Si lo dejas vacío se generará automáticamente desde el nombre
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Contraseña ─────────────────────────────────── */}
+      <div className="border-t border-slate-100 pt-5">
+        <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-700">
+          <KeyRound className="h-3.5 w-3.5" />
+          Contraseña
+        </h3>
+
+        {!editing ? (
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              Contraseña <span className="text-red-500">*</span>
+            </label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <input
                 type={verPassword ? 'text' : 'password'}
                 value={form.password}
                 onChange={(e) => setForm({ ...form, password: e.target.value })}
-                placeholder="Nueva contraseña (mín. 6 caracteres)"
-                className="w-full pl-9 pr-10 rounded-lg border border-slate-300 px-3 py-2 text-sm focus:border-navy-500 focus:ring-2 focus:ring-navy-100 outline-none"
-                autoFocus
+                placeholder="Mínimo 6 caracteres"
+                className="w-full pl-10 pr-10 rounded-lg border border-slate-300 py-2.5 px-3 text-sm outline-none transition focus:border-navy-500 focus:ring-2 focus:ring-navy-100"
               />
               <button
                 type="button"
@@ -337,25 +324,62 @@ function UserForm({ initialValues, onSubmit, onCancel, isPending }) {
                 {verPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-          )}
-        </div>
-      )}
+          </div>
+        ) : (
+          <div>
+            <label className="inline-flex items-center gap-2 cursor-pointer text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={cambiarPassword}
+                onChange={(e) => setCambiarPassword(e.target.checked)}
+                className="rounded border-slate-300 text-navy-600 focus:ring-navy-500"
+              />
+              Cambiar contraseña
+            </label>
+            {cambiarPassword && (
+              <div className="relative mt-2">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <input
+                  type={verPassword ? 'text' : 'password'}
+                  value={form.password}
+                  onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  placeholder="Nueva contraseña (mín. 6 caracteres)"
+                  className="w-full pl-10 pr-10 rounded-lg border border-slate-300 py-2.5 px-3 text-sm outline-none transition focus:border-navy-500 focus:ring-2 focus:ring-navy-100"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={() => setVerPassword((v) => !v)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-slate-700"
+                >
+                  {verPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
-      {/* Botones */}
-      <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+      {/* ── Acciones ───────────────────────────────────── */}
+      <div className="flex gap-3 justify-end pt-2 border-t border-slate-100">
         <button
           type="button"
           onClick={onCancel}
-          className="px-4 py-2 text-sm font-medium text-slate-600 hover:text-slate-800 transition"
+          className="px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={isPending}
-          className="inline-flex items-center gap-2 rounded-lg bg-navy-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-navy-700 transition disabled:opacity-50"
+          className="px-6 py-2 bg-navy-600 text-white rounded-lg hover:bg-navy-700 transition flex items-center gap-2 text-sm font-semibold disabled:opacity-50"
         >
-          {isPending ? 'Guardando…' : (editing ? 'Guardar cambios' : 'Crear usuario')}
+          {isPending ? (
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+          ) : (
+            <Save className="h-4 w-4" />
+          )}
+          {editing ? 'Guardar cambios' : 'Crear usuario'}
         </button>
       </div>
     </form>
