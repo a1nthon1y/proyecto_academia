@@ -8,10 +8,11 @@ import {
   Users, Plus, Search, X, Pencil, Eye, EyeOff,
   Lock, Mail, User as UserIcon, ShieldCheck, Briefcase,
   UserCheck, GraduationCap, CheckCircle, XCircle, AlertCircle,
-  FileText, KeyRound, Save,
+  FileText, KeyRound, Save, RefreshCw,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { toast } from 'sonner';
+import { previewUsername } from '@/utils/username';
 
 // ─────────────────────────────────────────────────────────────
 // Constantes y helpers
@@ -29,22 +30,6 @@ const ROL_COLORS = {
   blue:    'bg-blue-100 text-blue-700 border-blue-200',
   emerald: 'bg-emerald-100 text-emerald-700 border-emerald-200',
   purple:  'bg-purple-100 text-purple-700 border-purple-200',
-};
-
-const limpiar = (txt) =>
-  (txt || '')
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/\s+/g, '');
-
-const previewUsername = ({ nombres, apellidos, rol_id }) => {
-  if (!nombres || !apellidos || !rol_id) return '';
-  const prefijo = ROLES_INFO[rol_id]?.prefijo;
-  if (!prefijo) return '';
-  const inicial = limpiar(nombres)[0] || '';
-  const primerApellido = limpiar(apellidos.split(' ')[0]);
-  return `${prefijo}${inicial}${primerApellido}`;
 };
 
 const fmtFecha = (d) =>
@@ -120,7 +105,11 @@ function UserForm({ initialValues, onSubmit, onCancel, isPending }) {
   const [verPassword, setVerPassword] = useState(false);
   const [error, setError] = useState('');
 
-  const usernameAuto = previewUsername(form);
+  const usernameAuto = previewUsername({
+    nombres: form.nombres,
+    apellidos: form.apellidos,
+    rolId: form.rol_id,
+  });
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -281,11 +270,26 @@ function UserForm({ initialValues, onSubmit, onCancel, isPending }) {
                 className="w-full pl-10 rounded-lg border border-slate-300 py-2.5 px-3 text-sm outline-none transition focus:border-navy-500 focus:ring-2 focus:ring-navy-100"
               />
             </div>
-            {!editing && !form.username && usernameAuto && (
-              <p className="mt-1 text-xs text-slate-500">
-                Se generará como <span className="font-semibold text-navy-700">{usernameAuto}</span>
-              </p>
+
+            {/* Preview reactivo del username auto-generado */}
+            {usernameAuto && form.username !== usernameAuto && (
+              <div className="mt-1.5 flex items-center justify-between gap-2">
+                <p className="text-xs text-slate-500">
+                  Sugerencia desde el nombre:{' '}
+                  <span className="font-semibold text-navy-700">{usernameAuto}</span>
+                </p>
+                {editing && (
+                  <button
+                    type="button"
+                    onClick={() => setForm({ ...form, username: usernameAuto })}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-navy-600 hover:text-navy-800 hover:underline"
+                  >
+                    <RefreshCw className="h-3 w-3" /> Aplicar
+                  </button>
+                )}
+              </div>
             )}
+
             {!editing && !form.username && !usernameAuto && (
               <p className="mt-1 text-xs text-slate-500">
                 Si lo dejas vacío se generará automáticamente desde el nombre

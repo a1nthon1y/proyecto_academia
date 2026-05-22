@@ -6,7 +6,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { padreSchema } from '@/schemas/personasSchemas';
 import { useRegistrarPadreCompleto } from '@/hooks/usePadresMutations';
 import { CredencialesDisplay } from '@/components/shared/CredencialesDisplay';
-import { User, Mail, Phone, MapPin, Lock, Key, FileText } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Lock, Key, FileText, AtSign } from 'lucide-react';
+import { previewUsername } from '@/utils/username';
 
 /**
  * Formulario para registrar un padre de familia
@@ -38,6 +39,13 @@ export function FormCrearPadre({ onSuccess }) {
   });
 
   const useAutoPassword = watch('useAutoPassword');
+  const nombresWatch = watch('nombres');
+  const apellidosWatch = watch('apellidos');
+  const usernamePreview = previewUsername({
+    nombres: nombresWatch,
+    apellidos: apellidosWatch,
+    rolId: 3, // PADRE
+  });
 
   const onSubmit = async (data) => {
     try {
@@ -179,6 +187,19 @@ export function FormCrearPadre({ onSuccess }) {
                   <p className="mt-1 text-xs text-red-600">{errors.apellidos.message}</p>
                 )}
               </div>
+
+              {/* Preview reactivo del username que generará el backend */}
+              {usernamePreview && (
+                <div className="sm:col-span-2 flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm">
+                  <AtSign className="h-4 w-4 text-emerald-600 flex-shrink-0" />
+                  <span className="text-slate-600">
+                    Usuario que se generará:{' '}
+                    <span className="font-mono font-semibold text-emerald-700">
+                      {usernamePreview}
+                    </span>
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 

@@ -9,7 +9,8 @@ import { useUbicacion } from '@/hooks/useUbicacion';
 import { useBancos } from '@/hooks/useBancos';
 import { useNiveles } from '@/hooks/useNiveles';
 import { CredencialesDisplay } from '@/components/shared/CredencialesDisplay';
-import { User, Mail, Phone, MapPin, Lock, Key, FileText, GraduationCap, DollarSign, MapPinned, Building2, Book } from 'lucide-react';
+import { User, Mail, Phone, MapPin, Lock, Key, FileText, GraduationCap, DollarSign, MapPinned, Building2, Book, AtSign } from 'lucide-react';
+import { previewUsername } from '@/utils/username';
 
 /**
  * Formulario para registrar un tutor
@@ -53,6 +54,13 @@ export function FormCrearTutor({ onSuccess }) {
 
     const useAutoPassword = watch('useAutoPassword');
     const ciudadId = watch('ciudad_id');
+    const nombresWatch = watch('nombres');
+    const apellidosWatch = watch('apellidos');
+    const usernamePreview = previewUsername({
+        nombres: nombresWatch,
+        apellidos: apellidosWatch,
+        rolId: 4, // TUTOR
+    });
 
     const onSubmit = async (data) => {
         try {
@@ -207,6 +215,19 @@ export function FormCrearTutor({ onSuccess }) {
                                     <p className="mt-1 text-xs text-red-600">{errors.apellidos.message}</p>
                                 )}
                             </div>
+
+                            {/* Preview reactivo del username que generará el backend */}
+                            {usernamePreview && (
+                                <div className="sm:col-span-2 flex items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 px-3 py-2 text-sm">
+                                    <AtSign className="h-4 w-4 text-purple-600 flex-shrink-0" />
+                                    <span className="text-slate-600">
+                                        Usuario que se generará:{' '}
+                                        <span className="font-mono font-semibold text-purple-700">
+                                            {usernamePreview}
+                                        </span>
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
