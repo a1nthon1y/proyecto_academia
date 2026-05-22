@@ -33,19 +33,21 @@ export function PageHeader({ title, subtitle, mode = 'lista', onBack, actions })
                 </button>
             )}
 
-            <div className="flex flex-wrap items-end justify-between gap-3">
-                <div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0">
                     {formLabel && (
                         <p className="text-xs font-semibold uppercase tracking-wider text-navy-600">
                             {formLabel}
                         </p>
                     )}
-                    <h1 className="text-2xl font-bold text-navy-900">{title}</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-navy-900 truncate">{title}</h1>
                     {subtitle && (
-                        <p className="mt-0.5 text-sm text-slate-600">{subtitle}</p>
+                        <p className="mt-0.5 text-sm text-slate-600 line-clamp-2">{subtitle}</p>
                     )}
                 </div>
-                {!isFormView && actions ? <div>{actions}</div> : null}
+                {!isFormView && actions ? (
+                    <div className="[&>button]:w-full sm:[&>button]:w-auto">{actions}</div>
+                ) : null}
             </div>
         </div>
     );

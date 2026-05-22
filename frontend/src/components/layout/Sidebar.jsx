@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useLogout } from '@/hooks/useLogout';
@@ -114,23 +114,34 @@ export function Sidebar({ user }) {
   const router = useRouter();
   const { logout } = useLogout();
   const [openMenus, setOpenMenus] = useState({});
-  const [isOpen, setIsOpen] = useState(true);
+  // Cerrado por defecto en móvil; abierto en desktop (CSS lo fuerza con lg:translate-x-0)
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Cerrar el sidebar automáticamente al cambiar de ruta en móvil
+  useEffect(() => {
+    setIsOpen(false);
+  }, [pathname]);
+
+  // Bloquear scroll del body cuando el sidebar móvil está abierto
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => { document.body.style.overflow = ''; };
+  }, [isOpen]);
 
   const handleLogout = () => logout();
 
   const toggleSubmenu = (item) => {
-    // Si tiene submenú, al hacer clic:
-    // 1. se expande el menú
-    // 2. navega al primer enlace del submenú (como antes)
     if (item.submenu?.length > 0) {
       setOpenMenus((prev) => ({
         ...prev,
         [item.name]: !prev[item.name],
       }));
-
-      // Navega al primer enlace del submenú
-      const firstHref = item.submenu[0].href;
-      router.push(firstHref);
+      router.push(item.submenu[0].href);
     } else {
       router.push(item.href);
     }
@@ -144,21 +155,42 @@ export function Sidebar({ user }) {
 
   return (
     <>
-      {/* Botón hamburguesa (solo en móvil) */}
-      <div className="lg:hidden flex items-center bg-gray-900 p-3">
-        <button onClick={() => setIsOpen(!isOpen)} className="text-gray-300 hover:text-white">
-          {isOpen ? <XMarkIcon className="h-6 w-6" /> : <Bars3Icon className="h-6 w-6" />}
+      {/* Barra superior móvil con botón hamburguesa */}
+      <div className="lg:hidden sticky top-0 z-30 flex items-center justify-between bg-gray-900 px-3 py-3 shadow-md">
+        <button
+          onClick={() => setIsOpen(true)}
+          className="rounded-md p-1.5 text-gray-300 transition hover:bg-gray-800 hover:text-white"
+          aria-label="Abrir menú"
+        >
+          <Bars3Icon className="h-6 w-6" />
         </button>
-        <span className="ml-3 text-blue-400 font-bold">Deoxy Academia</span>
+        <span className="text-blue-400 font-bold">Deoxy Academia</span>
+        <div className="w-9" /> {/* spacer para centrar */}
       </div>
 
-      {/* Sidebar */}
-      <div className={`${isOpen ? 'translate-x-0' : '-translate-x-full'} 
-          lg:translate-x-0 fixed lg:static z-40 flex h-full w-64 flex-col bg-gray-900 shadow-xl transform transition-transform duration-300`}>
+      {/* Backdrop oscuro al abrir en móvil */}
+      {isOpen && (
+        <div
+          className="lg:hidden fixed inset-0 z-40 bg-black/50 backdrop-blur-sm transition-opacity animate-fadeIn"
+          onClick={() => setIsOpen(false)}
+          aria-hidden="true"
+        />
+      )}
 
-        {/* Logo */}
-        <div className="hidden lg:flex h-16 items-center justify-center border-b border-gray-800">
-          <span className="text-2xl font-bold text-blue-400">Deoxy Academia</span>
+      {/* Sidebar */}
+      <div className={`${isOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0 fixed lg:static z-50 flex h-full w-72 max-w-[85vw] flex-col bg-gray-900 shadow-xl transform transition-transform duration-300`}>
+
+        {/* Logo + botón cerrar (mobile) */}
+        <div className="flex h-16 items-center justify-between border-b border-gray-800 px-4 lg:justify-center">
+          <span className="text-xl lg:text-2xl font-bold text-blue-400">Deoxy Academia</span>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="lg:hidden rounded-md p-1.5 text-gray-400 transition hover:bg-gray-800 hover:text-white"
+            aria-label="Cerrar menú"
+          >
+            <XMarkIcon className="h-5 w-5" />
+          </button>
         </div>
 
         {/* Navegación */}

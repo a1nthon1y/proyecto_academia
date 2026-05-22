@@ -593,7 +593,7 @@ export default function UserList() {
               placeholder="Buscar por nombre, usuario o email…"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-72 pl-8 pr-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-navy-500 focus:ring-2 focus:ring-navy-100 outline-none"
+              className="w-full sm:w-72 pl-8 pr-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:border-navy-500 focus:ring-2 focus:ring-navy-100 outline-none"
             />
           </div>
         </div>

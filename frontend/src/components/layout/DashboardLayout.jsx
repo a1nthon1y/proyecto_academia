@@ -70,14 +70,14 @@ export function DashboardLayout({ children }) {
   return (
     <>
       <TokenExpirationAlert />
-      <div className="flex h-screen bg-gray-100">
+      <div className="flex h-screen bg-gray-100 lg:flex-row flex-col">
         <Sidebar user={user} />
 
-        <div className="flex flex-1 flex-col overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden min-w-0">
           <Header user={user} />
-          
-          <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-            <div className="min-w-full">
+
+          <main className="flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 lg:p-8">
+            <div className="max-w-full">
               {children}
             </div>
           </main>
