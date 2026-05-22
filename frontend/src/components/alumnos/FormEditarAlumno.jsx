@@ -2,9 +2,11 @@
 
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 import { alumnoSchema } from '@/schemas/alumnosSchemas';
 import { useActualizarAlumno } from '@/hooks/useAlumnosMutations';
 import { useUbicacion } from '@/hooks/useUbicacion';
+import { obtenerAlumno } from '@/services/alumnosService';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { User, Calendar, BookOpen, MapPinned, GraduationCap, Building2, Save, X } from 'lucide-react';
 import { useEffect } from 'react';
@@ -13,12 +15,21 @@ export function FormEditarAlumno({ alumno, onSuccess, onCancel }) {
     const { ciudades, distritos, isLoadingCiudades, cargarDistritos } = useUbicacion();
     const actualizarMutation = useActualizarAlumno();
 
+    // La lista de alumnos no devuelve TODOS los campos (padre_id, ciudad_id,
+    // distrito_id, nivel_id). Hacemos fetch fresco por ID.
+    const { data: alumnoCompleto, isLoading: isLoadingAlumno } = useQuery({
+        queryKey: ['alumno', alumno.id],
+        queryFn: () => obtenerAlumno(alumno.id),
+        enabled: !!alumno.id,
+    });
+
     const {
         register,
         handleSubmit,
         formState: { errors, isSubmitting },
         watch,
         setValue,
+        reset,
     } = useForm({
         resolver: zodResolver(alumnoSchema),
         defaultValues: {
@@ -26,22 +37,38 @@ export function FormEditarAlumno({ alumno, onSuccess, onCancel }) {
             nombres: alumno.nombres || '',
             apellidos: alumno.apellidos || '',
             fecha_nacimiento: alumno.fecha_nacimiento ? new Date(alumno.fecha_nacimiento).toISOString().split('T')[0] : '',
-            padre_id: alumno.padre_id?.toString() || '', // No editable visualmente pero necesario para validación si el schema lo requiere
+            padre_id: '',
             grado: alumno.grado || '',
-            nivel_id: alumno.nivel_id?.toString() || '',
-            ciudad_id: alumno.ciudad_id?.toString() || '',
-            distrito_id: alumno.distrito_id?.toString() || ''
+            nivel_id: '',
+            ciudad_id: '',
+            distrito_id: '',
         },
     });
 
     const ciudadId = watch('ciudad_id');
 
+    // Cuando llega el alumno completo, repoblamos el form con todos los IDs
     useEffect(() => {
-        if (alumno.ciudad_id) {
-            cargarDistritos(alumno.ciudad_id);
-            setValue('distrito_id', alumno.distrito_id?.toString());
+        if (!alumnoCompleto) return;
+
+        reset({
+            dni: alumnoCompleto.dni || '',
+            nombres: alumnoCompleto.nombres || '',
+            apellidos: alumnoCompleto.apellidos || '',
+            fecha_nacimiento: alumnoCompleto.fecha_nacimiento
+                ? new Date(alumnoCompleto.fecha_nacimiento).toISOString().split('T')[0]
+                : '',
+            padre_id: alumnoCompleto.padre_id?.toString() || '',
+            grado: alumnoCompleto.grado || '',
+            nivel_id: alumnoCompleto.nivel_id?.toString() || '',
+            ciudad_id: alumnoCompleto.ciudad_id?.toString() || '',
+            distrito_id: alumnoCompleto.distrito_id?.toString() || '',
+        });
+
+        if (alumnoCompleto.ciudad_id) {
+            cargarDistritos(alumnoCompleto.ciudad_id);
         }
-    }, [alumno.ciudad_id]);
+    }, [alumnoCompleto, reset, cargarDistritos]);
 
     const onSubmit = async (data) => {
         try {
@@ -62,8 +89,21 @@ export function FormEditarAlumno({ alumno, onSuccess, onCancel }) {
         }
     };
 
-    if (isLoadingCiudades) {
-        return <div className="p-8 flex justify-center"><LoadingSpinner /></div>;
+    if (isLoadingAlumno || isLoadingCiudades) {
+        return (
+            <div className="card max-w-4xl mx-auto">
+                <div className="flex items-center justify-between mb-6 pb-4 border-b border-slate-200">
+                    <div>
+                        <h2 className="flex items-center gap-2 text-xl font-bold text-navy-700">
+                            <GraduationCap className="h-6 w-6 text-gold-400" />
+                            Editar Alumno
+                        </h2>
+                        <p className="mt-1 text-sm text-slate-500">Cargando datos del estudiante…</p>
+                    </div>
+                </div>
+                <div className="p-12 flex justify-center"><LoadingSpinner /></div>
+            </div>
+        );
     }
 
     return (

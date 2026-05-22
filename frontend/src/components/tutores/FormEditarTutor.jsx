@@ -1,13 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useQuery } from '@tanstack/react-query';
 import { tutorSchema } from '@/schemas/personasSchemas';
 import { useActualizarTutorCompleto } from '@/hooks/useTutoresMutations';
 import { useUbicacion } from '@/hooks/useUbicacion';
 import { useBancos } from '@/hooks/useBancos';
 import { useNiveles } from '@/hooks/useNiveles';
+import { obtenerTutor } from '@/services/tutoresServiceTrabajador';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { User, Mail, Phone, MapPin, FileText, GraduationCap, DollarSign, MapPinned, Building2, Book, Save, X } from 'lucide-react';
 import { z } from 'zod';
 
@@ -23,11 +26,23 @@ export function FormEditarTutor({ tutor, onSuccess, onCancel }) {
     const { bancos, isLoadingBancos } = useBancos();
     const { niveles, isLoadingNiveles } = useNiveles();
 
+    // La lista de tutores no devuelve TODOS los campos (ciudad_id, distrito_id,
+    // banco_id, tarifa_por_sesion, cuenta_bancaria). Hacemos fetch fresco por ID
+    // para asegurar que el form se pre-llena con datos completos.
+    const { data: tutorCompleto, isLoading: isLoadingTutor } = useQuery({
+        queryKey: ['tutor', tutor.id],
+        queryFn: () => obtenerTutor(tutor.id),
+        enabled: !!tutor.id,
+    });
+
+    const datos = tutorCompleto || tutor;
+
     const {
         register,
         handleSubmit,
         watch,
         setValue,
+        reset,
         formState: { errors, isSubmitting },
     } = useForm({
         resolver: zodResolver(tutorEditSchema),
@@ -37,26 +52,43 @@ export function FormEditarTutor({ tutor, onSuccess, onCancel }) {
             apellidos: tutor.apellidos || '',
             email: tutor.email || '',
             telefono: tutor.telefono || '',
-            direccion: tutor.direccion || '',
+            direccion: '',
             especialidad: tutor.especialidad || '',
-            nivel_educativo_id: tutor.nivel_id?.toString() || '',
-            tarifa_por_sesion: tutor.tarifa_por_sesion || '',
-            ciudad_id: tutor.ciudad_id?.toString() || '',
-            distrito_id: tutor.distrito_id?.toString() || '',
-            banco_id: tutor.banco_id?.toString() || '',
-            cuenta_bancaria: tutor.cuenta_bancaria || '',
+            nivel_educativo_id: '',
+            tarifa_por_sesion: '',
+            ciudad_id: '',
+            distrito_id: '',
+            banco_id: '',
+            cuenta_bancaria: '',
         },
     });
 
     const ciudadId = watch('ciudad_id');
 
-    // Cargar distritos al iniciar si hay ciudad seleccionada
+    // Cuando llegan los datos completos del tutor, repoblamos el form
     useEffect(() => {
-        if (tutor.ciudad_id) {
-            cargarDistritos(tutor.ciudad_id);
-            setValue('distrito_id', tutor.distrito_id?.toString());
+        if (!tutorCompleto) return;
+
+        reset({
+            dni: tutorCompleto.dni || '',
+            nombres: tutorCompleto.nombres || '',
+            apellidos: tutorCompleto.apellidos || '',
+            email: tutorCompleto.email || '',
+            telefono: tutorCompleto.telefono || '',
+            direccion: tutorCompleto.direccion || '',
+            especialidad: tutorCompleto.especialidad || '',
+            nivel_educativo_id: tutorCompleto.nivel_id?.toString() || '',
+            tarifa_por_sesion: tutorCompleto.tarifa_por_sesion ?? '',
+            ciudad_id: tutorCompleto.ciudad_id?.toString() || '',
+            distrito_id: tutorCompleto.distrito_id?.toString() || '',
+            banco_id: tutorCompleto.banco_id?.toString() || '',
+            cuenta_bancaria: tutorCompleto.cuenta_bancaria || '',
+        });
+
+        if (tutorCompleto.ciudad_id) {
+            cargarDistritos(tutorCompleto.ciudad_id);
         }
-    }, [tutor.ciudad_id]);
+    }, [tutorCompleto, reset, cargarDistritos]);
 
     const onSubmit = async (data) => {
         try {
@@ -92,6 +124,22 @@ export function FormEditarTutor({ tutor, onSuccess, onCancel }) {
             }
         }
     };
+
+    if (isLoadingTutor) {
+        return (
+            <div className="max-w-4xl space-y-6">
+                <div className="flex items-center justify-between rounded-xl bg-slate-50 p-6 border border-slate-200">
+                    <div>
+                        <h2 className="text-xl font-bold text-navy-900">Editar Tutor</h2>
+                        <p className="text-sm text-slate-600">Cargando datos del tutor…</p>
+                    </div>
+                </div>
+                <div className="rounded-xl bg-white p-12 shadow-sm ring-1 ring-slate-200 flex justify-center">
+                    <LoadingSpinner />
+                </div>
+            </div>
+        );
+    }
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="max-w-4xl space-y-6">
