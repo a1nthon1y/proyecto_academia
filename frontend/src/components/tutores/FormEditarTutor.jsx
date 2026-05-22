@@ -65,7 +65,10 @@ export function FormEditarTutor({ tutor, onSuccess, onCancel }) {
 
     const ciudadId = watch('ciudad_id');
 
-    // Cuando llegan los datos completos del tutor, repoblamos el form
+    // Cuando llegan los datos completos del tutor, repoblamos el form.
+    // Dependemos del ID (primitivo) para evitar loops si la referencia
+    // del objeto cambia en cada fetch/refetch.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (!tutorCompleto) return;
 
@@ -88,7 +91,7 @@ export function FormEditarTutor({ tutor, onSuccess, onCancel }) {
         if (tutorCompleto.ciudad_id) {
             cargarDistritos(tutorCompleto.ciudad_id);
         }
-    }, [tutorCompleto, reset, cargarDistritos]);
+    }, [tutorCompleto?.id]);
 
     const onSubmit = async (data) => {
         try {

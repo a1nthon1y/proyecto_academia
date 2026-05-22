@@ -47,7 +47,9 @@ export function FormEditarAlumno({ alumno, onSuccess, onCancel }) {
 
     const ciudadId = watch('ciudad_id');
 
-    // Cuando llega el alumno completo, repoblamos el form con todos los IDs
+    // Cuando llega el alumno completo, repoblamos el form con todos los IDs.
+    // Dependemos del ID (primitivo) para evitar loops infinitos.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (!alumnoCompleto) return;
 
@@ -68,7 +70,7 @@ export function FormEditarAlumno({ alumno, onSuccess, onCancel }) {
         if (alumnoCompleto.ciudad_id) {
             cargarDistritos(alumnoCompleto.ciudad_id);
         }
-    }, [alumnoCompleto, reset, cargarDistritos]);
+    }, [alumnoCompleto?.id]);
 
     const onSubmit = async (data) => {
         try {

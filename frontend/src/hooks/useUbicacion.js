@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { listarCiudades, listarDistritosPorCiudad } from '@/services/ubicacionService';
 import { toast } from 'sonner';
 
@@ -9,11 +8,9 @@ export function useUbicacion() {
     const [isLoadingCiudades, setIsLoadingCiudades] = useState(false);
     const [isLoadingDistritos, setIsLoadingDistritos] = useState(false);
 
-    useEffect(() => {
-        cargarCiudades();
-    }, []);
-
-    const cargarCiudades = async () => {
+    // useCallback para que la referencia de la función sea estable entre renders.
+    // Sin esto, cualquier useEffect que dependa de cargarDistritos entra en loop.
+    const cargarCiudades = useCallback(async () => {
         setIsLoadingCiudades(true);
         try {
             const data = await listarCiudades();
@@ -24,9 +21,9 @@ export function useUbicacion() {
         } finally {
             setIsLoadingCiudades(false);
         }
-    };
+    }, []);
 
-    const cargarDistritos = async (ciudadId) => {
+    const cargarDistritos = useCallback(async (ciudadId) => {
         if (!ciudadId || ciudadId === "") {
             setDistritos([]);
             return;
@@ -42,13 +39,17 @@ export function useUbicacion() {
         } finally {
             setIsLoadingDistritos(false);
         }
-    };
+    }, []);
+
+    useEffect(() => {
+        cargarCiudades();
+    }, [cargarCiudades]);
 
     return {
         ciudades,
         distritos,
         isLoadingCiudades,
         isLoadingDistritos,
-        cargarDistritos
+        cargarDistritos,
     };
 }
