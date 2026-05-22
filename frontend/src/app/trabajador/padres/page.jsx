@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { Suspense, useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { FormCrearPadre } from '@/components/padres/FormCrearPadre';
 import { FormEditarPadre } from '@/components/padres/FormEditarPadre';
 import { useQuery } from '@tanstack/react-query';
 import { listarPadres } from '@/services/padresServiceTrabajador';
 import { useDesactivarPadre, useReactivarPadre } from '@/hooks/usePadresMutations';
+import { usePageMode } from '@/hooks/usePageMode';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
   Plus, Mail, Phone, CheckCircle, XCircle, Pencil, UserMinus, UserCheck,
@@ -15,8 +17,15 @@ import {
 import Swal from 'sweetalert2';
 
 export default function TrabajadorPadresPage() {
-  const [view, setView] = useState('list');
-  const [selectedPadre, setSelectedPadre] = useState(null);
+  return (
+    <Suspense fallback={<div className="p-12 flex justify-center"><LoadingSpinner /></div>}>
+      <PadresPageContent />
+    </Suspense>
+  );
+}
+
+function PadresPageContent() {
+  const { mode, id: editingId, openCreate, openEdit, backToList } = usePageMode();
   const [search, setSearch] = useState('');
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
@@ -24,6 +33,11 @@ export default function TrabajadorPadresPage() {
     queryKey: ['padres', 'trabajador', mostrarInactivos],
     queryFn: () => listarPadres(mostrarInactivos),
   });
+
+  const selectedPadre = useMemo(
+    () => (padres || []).find((p) => p.id === editingId) || null,
+    [padres, editingId]
+  );
 
   const desactivarMutation = useDesactivarPadre();
   const reactivarMutation = useReactivarPadre();
@@ -52,8 +66,7 @@ export default function TrabajadorPadresPage() {
   }, [padres]);
 
   const handleEdit = (padre) => {
-    setSelectedPadre(padre);
-    setView('edit');
+    openEdit(padre.id);
   };
 
   const handleDesactivar = async (padre) => {
@@ -97,31 +110,29 @@ export default function TrabajadorPadresPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-navy-900">Padres de familia</h1>
-            <p className="text-sm text-slate-600">Gestión de padres y apoderados</p>
-          </div>
-          {view === 'list' && (
+        <PageHeader
+          title="Padres de familia"
+          subtitle={
+            mode === 'crear'
+              ? 'Registrar un nuevo padre o apoderado'
+              : mode === 'editar' && selectedPadre
+                ? `${selectedPadre.nombres} ${selectedPadre.apellidos}`
+                : 'Gestión de padres y apoderados'
+          }
+          mode={mode}
+          onBack={backToList}
+          actions={
             <button
-              onClick={() => setView('create')}
+              onClick={openCreate}
               className="flex items-center gap-2 rounded-lg bg-navy-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-navy-700 transition"
             >
               <Plus className="h-4 w-4" />
               Nuevo padre
             </button>
-          )}
-          {view !== 'list' && (
-            <button
-              onClick={() => { setView('list'); setSelectedPadre(null); }}
-              className="text-sm text-navy-600 hover:text-navy-800 hover:underline transition font-medium"
-            >
-              &larr; Volver a la lista
-            </button>
-          )}
-        </div>
+          }
+        />
 
-        {view === 'list' && (
+        {mode === 'lista' && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
@@ -146,14 +157,21 @@ export default function TrabajadorPadresPage() {
           </div>
         )}
 
-        {view === 'create' ? (
-          <FormCrearPadre onSuccess={() => { refetch(); setView('list'); }} />
-        ) : view === 'edit' && selectedPadre ? (
+        {mode === 'crear' ? (
+          <FormCrearPadre onSuccess={() => { refetch(); backToList(); }} />
+        ) : mode === 'editar' && selectedPadre ? (
           <FormEditarPadre
             padre={selectedPadre}
-            onSuccess={() => { refetch(); setView('list'); setSelectedPadre(null); }}
-            onCancel={() => { setView('list'); setSelectedPadre(null); }}
+            onSuccess={() => { refetch(); backToList(); }}
+            onCancel={backToList}
           />
+        ) : mode === 'editar' && !selectedPadre ? (
+          <div className="rounded-xl bg-white p-12 text-center shadow-sm ring-1 ring-slate-200">
+            <p className="text-sm text-slate-500">Padre no encontrado.</p>
+            <button onClick={backToList} className="mt-3 text-sm font-medium text-navy-600 hover:underline">
+              Volver a la lista
+            </button>
+          </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">

@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { Suspense, useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { FormCrearTutor } from '@/components/tutores/FormCrearTutor';
 import { FormEditarTutor } from '@/components/tutores/FormEditarTutor';
 import { useQuery } from '@tanstack/react-query';
 import { listarTutores } from '@/services/tutoresServiceTrabajador';
 import { useDesactivarTutor, useReactivarTutor } from '@/hooks/useTutoresMutations';
+import { usePageMode } from '@/hooks/usePageMode';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
   Plus, MapPin, Phone, Mail, CheckCircle, XCircle, Pencil, UserMinus, UserCheck,
@@ -15,8 +17,15 @@ import {
 import Swal from 'sweetalert2';
 
 export default function TrabajadorTutoresPage() {
-  const [view, setView] = useState('list');
-  const [selectedTutor, setSelectedTutor] = useState(null);
+  return (
+    <Suspense fallback={<div className="p-12 flex justify-center"><LoadingSpinner /></div>}>
+      <TutoresPageContent />
+    </Suspense>
+  );
+}
+
+function TutoresPageContent() {
+  const { mode, id: editingId, openCreate, openEdit, backToList } = usePageMode();
   const [search, setSearch] = useState('');
   const [mostrarInactivos, setMostrarInactivos] = useState(false);
 
@@ -24,6 +33,11 @@ export default function TrabajadorTutoresPage() {
     queryKey: ['tutores', 'trabajador', mostrarInactivos],
     queryFn: () => listarTutores(mostrarInactivos),
   });
+
+  const selectedTutor = useMemo(
+    () => (tutores || []).find((t) => t.id === editingId) || null,
+    [tutores, editingId]
+  );
 
   const desactivarMutation = useDesactivarTutor();
   const reactivarMutation = useReactivarTutor();
@@ -52,8 +66,7 @@ export default function TrabajadorTutoresPage() {
   }, [tutores]);
 
   const handleEdit = (tutor) => {
-    setSelectedTutor(tutor);
-    setView('edit');
+    openEdit(tutor.id);
   };
 
   const handleDesactivar = async (tutor) => {
@@ -97,31 +110,29 @@ export default function TrabajadorTutoresPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-navy-900">Tutores</h1>
-            <p className="text-sm text-slate-600">Gestión de personal docente</p>
-          </div>
-          {view === 'list' && (
+        <PageHeader
+          title="Tutores"
+          subtitle={
+            mode === 'crear'
+              ? 'Registrar un nuevo tutor docente'
+              : mode === 'editar' && selectedTutor
+                ? `${selectedTutor.nombres} ${selectedTutor.apellidos}`
+                : 'Gestión de personal docente'
+          }
+          mode={mode}
+          onBack={backToList}
+          actions={
             <button
-              onClick={() => setView('create')}
+              onClick={openCreate}
               className="flex items-center gap-2 rounded-lg bg-navy-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-navy-700 transition"
             >
               <Plus className="h-4 w-4" />
               Nuevo tutor
             </button>
-          )}
-          {view !== 'list' && (
-            <button
-              onClick={() => { setView('list'); setSelectedTutor(null); }}
-              className="text-sm text-navy-600 hover:text-navy-800 hover:underline transition font-medium"
-            >
-              &larr; Volver a la lista
-            </button>
-          )}
-        </div>
+          }
+        />
 
-        {view === 'list' && (
+        {mode === 'lista' && (
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">
@@ -146,14 +157,21 @@ export default function TrabajadorTutoresPage() {
           </div>
         )}
 
-        {view === 'create' ? (
-          <FormCrearTutor onSuccess={() => { refetch(); setView('list'); }} />
-        ) : view === 'edit' && selectedTutor ? (
+        {mode === 'crear' ? (
+          <FormCrearTutor onSuccess={() => { refetch(); backToList(); }} />
+        ) : mode === 'editar' && selectedTutor ? (
           <FormEditarTutor
             tutor={selectedTutor}
-            onSuccess={() => { refetch(); setView('list'); setSelectedTutor(null); }}
-            onCancel={() => { setView('list'); setSelectedTutor(null); }}
+            onSuccess={() => { refetch(); backToList(); }}
+            onCancel={backToList}
           />
+        ) : mode === 'editar' && !selectedTutor ? (
+          <div className="rounded-xl bg-white p-12 text-center shadow-sm ring-1 ring-slate-200">
+            <p className="text-sm text-slate-500">Tutor no encontrado.</p>
+            <button onClick={backToList} className="mt-3 text-sm font-medium text-navy-600 hover:underline">
+              Volver a la lista
+            </button>
+          </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">

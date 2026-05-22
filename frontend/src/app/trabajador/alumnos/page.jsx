@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { Suspense, useState, useMemo } from 'react';
 import { DashboardLayout } from '@/components/layout/DashboardLayout';
 import { FormCrearAlumno } from '@/components/alumnos/FormCrearAlumno';
 import { FormEditarAlumno } from '@/components/alumnos/FormEditarAlumno';
 import { useQuery } from '@tanstack/react-query';
 import { listarAlumnos } from '@/services/alumnosService';
 import { useEliminarAlumno } from '@/hooks/useAlumnosMutations';
+import { usePageMode } from '@/hooks/usePageMode';
+import { PageHeader } from '@/components/shared/PageHeader';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import {
   User, Plus, Pencil, Trash2, Calendar, MapPin, GraduationCap,
@@ -15,14 +17,26 @@ import {
 import Swal from 'sweetalert2';
 
 export default function TrabajadorAlumnosPage() {
-  const [view, setView] = useState('list');
-  const [selectedAlumno, setSelectedAlumno] = useState(null);
+  return (
+    <Suspense fallback={<div className="p-12 flex justify-center"><LoadingSpinner /></div>}>
+      <AlumnosPageContent />
+    </Suspense>
+  );
+}
+
+function AlumnosPageContent() {
+  const { mode, id: editingId, openCreate, openEdit, backToList } = usePageMode();
   const [search, setSearch] = useState('');
 
   const { data: alumnos, isLoading, refetch } = useQuery({
     queryKey: ['alumnos'],
     queryFn: listarAlumnos,
   });
+
+  const selectedAlumno = useMemo(
+    () => (alumnos || []).find((a) => a.id === editingId) || null,
+    [alumnos, editingId]
+  );
 
   const eliminarMutation = useEliminarAlumno();
 
@@ -48,8 +62,7 @@ export default function TrabajadorAlumnosPage() {
   }, [alumnos]);
 
   const handleEdit = (alumno) => {
-    setSelectedAlumno(alumno);
-    setView('edit');
+    openEdit(alumno.id);
   };
 
   const handleDelete = async (alumno) => {
@@ -69,31 +82,29 @@ export default function TrabajadorAlumnosPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        <div className="flex items-center justify-between flex-wrap gap-3">
-          <div>
-            <h1 className="text-2xl font-bold text-navy-900">Alumnos</h1>
-            <p className="text-sm text-slate-600">Gestión de estudiantes inscritos</p>
-          </div>
-          {view === 'list' && (
+        <PageHeader
+          title="Alumnos"
+          subtitle={
+            mode === 'crear'
+              ? 'Registrar un nuevo estudiante'
+              : mode === 'editar' && selectedAlumno
+                ? `${selectedAlumno.nombres} ${selectedAlumno.apellidos}`
+                : 'Gestión de estudiantes inscritos'
+          }
+          mode={mode}
+          onBack={backToList}
+          actions={
             <button
-              onClick={() => setView('create')}
+              onClick={openCreate}
               className="flex items-center gap-2 rounded-lg bg-navy-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-navy-700 transition"
             >
               <Plus className="h-4 w-4" />
               Nuevo alumno
             </button>
-          )}
-          {view !== 'list' && (
-            <button
-              onClick={() => { setView('list'); setSelectedAlumno(null); }}
-              className="text-sm text-navy-600 hover:text-navy-800 hover:underline transition font-medium"
-            >
-              &larr; Volver a la lista
-            </button>
-          )}
-        </div>
+          }
+        />
 
-        {view === 'list' && (
+        {mode === 'lista' && (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
               <p className="text-xs font-medium text-slate-500 uppercase tracking-wide">Total alumnos</p>
@@ -110,14 +121,21 @@ export default function TrabajadorAlumnosPage() {
           </div>
         )}
 
-        {view === 'create' ? (
-          <FormCrearAlumno onSuccess={() => { refetch(); setView('list'); }} />
-        ) : view === 'edit' && selectedAlumno ? (
+        {mode === 'crear' ? (
+          <FormCrearAlumno onSuccess={() => { refetch(); backToList(); }} />
+        ) : mode === 'editar' && selectedAlumno ? (
           <FormEditarAlumno
             alumno={selectedAlumno}
-            onSuccess={() => { refetch(); setView('list'); setSelectedAlumno(null); }}
-            onCancel={() => { setView('list'); setSelectedAlumno(null); }}
+            onSuccess={() => { refetch(); backToList(); }}
+            onCancel={backToList}
           />
+        ) : mode === 'editar' && !selectedAlumno ? (
+          <div className="rounded-xl bg-white p-12 text-center shadow-sm ring-1 ring-slate-200">
+            <p className="text-sm text-slate-500">Alumno no encontrado.</p>
+            <button onClick={backToList} className="mt-3 text-sm font-medium text-navy-600 hover:underline">
+              Volver a la lista
+            </button>
+          </div>
         ) : (
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
             <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between flex-wrap gap-2">
