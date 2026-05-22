@@ -31,7 +31,7 @@ export function getRouteByRolId(rolId) {
     case ROLES.TUTOR:
       return '/tutor';
     default:
-      return '/login';
+      return '/?login=1';
   }
 }
 

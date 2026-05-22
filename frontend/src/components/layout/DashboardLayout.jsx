@@ -28,7 +28,7 @@ export function DashboardLayout({ children }) {
         setIsLoading(false);
 
         if (!authenticated) {
-          router.push('/login');
+          router.push('/?login=1');
           return;
         }
 
@@ -46,7 +46,7 @@ export function DashboardLayout({ children }) {
         setIsAuthenticated(false);
         setUser(null);
         setIsLoading(false);
-        router.push('/login');
+        router.push('/?login=1');
       }
     };
 

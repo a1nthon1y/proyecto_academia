@@ -31,15 +31,17 @@ api.interceptors.request.use(
       // Limpiar sesión si el token es inválido o ha expirado
       authService.logout();
 
-      // Evitar loops en la página de login
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
+      // Evitar loops en la landing donde ya está el modal de login
+      const inLoginContext = typeof window !== 'undefined' &&
+        (window.location.pathname === '/' || window.location.pathname === '/login');
+      if (!inLoginContext) {
         toast.error('Su sesión ha expirado. Por favor, inicie sesión nuevamente.', {
           duration: 5000,
         });
 
         setTimeout(() => {
-          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-            window.location.href = '/login';
+          if (typeof window !== 'undefined') {
+            window.location.href = '/?login=1';
           }
         }, 2000);
       }
@@ -68,17 +70,16 @@ api.interceptors.response.use(
       // Limpiar datos de autenticación
       authService.logout();
 
-      // Solo mostrar mensaje y redirigir si no estamos ya en la página de login
-      if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-        // Mostrar mensaje al usuario
+      const inLoginContext = typeof window !== 'undefined' &&
+        (window.location.pathname === '/' || window.location.pathname === '/login');
+      if (!inLoginContext) {
         toast.error('Su sesión ha expirado. Por favor, inicie sesión nuevamente.', {
           duration: 5000,
         });
 
-        // Redirigir al login después de un breve delay
         setTimeout(() => {
-          if (typeof window !== 'undefined' && window.location.pathname !== '/login') {
-            window.location.href = '/login';
+          if (typeof window !== 'undefined') {
+            window.location.href = '/?login=1';
           }
         }, 2000);
       }

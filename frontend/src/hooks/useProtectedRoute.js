@@ -24,12 +24,12 @@ export const useProtectedRoute = () => {
         setIsLoading(false);
         hasChecked.current = true;
 
-        // Solo redirigir si no está autenticado y no estamos ya en login
-        if (!authenticated && 
-            typeof window !== 'undefined' && 
-            window.location.pathname !== '/login') {
+        // Solo redirigir si no está autenticado y no estamos ya en el contexto de login
+        const inLoginContext = typeof window !== 'undefined' &&
+          (window.location.pathname === '/' || window.location.pathname === '/login');
+        if (!authenticated && !inLoginContext) {
           toast.error('Sesión no válida. Por favor, inicie sesión.');
-          router.push('/login');
+          router.push('/?login=1');
         }
       } catch (error) {
         console.error('Error checking authentication:', error);
@@ -37,11 +37,12 @@ export const useProtectedRoute = () => {
         setUser(null);
         setIsLoading(false);
         hasChecked.current = true;
-        
-        if (typeof window !== 'undefined' && 
-            window.location.pathname !== '/login') {
+
+        const inLoginContext = typeof window !== 'undefined' &&
+          (window.location.pathname === '/' || window.location.pathname === '/login');
+        if (!inLoginContext) {
           toast.error('Error de autenticación. Por favor, inicie sesión.');
-          router.push('/login');
+          router.push('/?login=1');
         }
       }
     };

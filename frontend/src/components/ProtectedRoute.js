@@ -13,7 +13,7 @@ export default function ProtectedRoute({ children, requiredRole }) {
     if (!hydrated) return;
 
     if (!isAuthenticated) {
-      router.replace('/login');
+      router.replace('/?login=1');
       return;
     }
 

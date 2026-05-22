@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Facebook, Instagram, Youtube, Menu, X,
   CheckCircle2, Star, ArrowRight, Phone,
@@ -11,6 +12,7 @@ import {
   Users, Trophy, Clock, Heart,
 } from 'lucide-react';
 import environment from '@/config/environment';
+import { LoginModal } from '@/components/auth/LoginModal';
 
 /* ── Datos estáticos ─────────────────────────────────────────── */
 const NAV_LINKS = [
@@ -67,11 +69,44 @@ const NIVELES = [
 
 /* ── Componente principal ────────────────────────────────────── */
 export default function Home() {
+  return (
+    <Suspense fallback={null}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+function HomeContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   const [menuOpen, setMenuOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(false);
   const [form, setForm]         = useState({ nombres: '', email: '', telefono: '', nivel: '', mensaje: '' });
   const [sending, setSending]   = useState(false);
   const [sent, setSent]         = useState(false);
   const [formError, setFormError] = useState('');
+
+  // Abrir el modal automáticamente cuando se llega con ?login=1 (p. ej. tras logout o expiración)
+  useEffect(() => {
+    if (searchParams.get('login') === '1') {
+      setLoginOpen(true);
+    }
+  }, [searchParams]);
+
+  // Al cerrar el modal, limpiar el query param para no quedarnos con ?login=1 en la URL
+  const handleCloseLogin = () => {
+    setLoginOpen(false);
+    if (searchParams.get('login')) {
+      router.replace('/', { scroll: false });
+    }
+  };
+
+  const openLogin = (e) => {
+    e?.preventDefault?.();
+    setMenuOpen(false);
+    setLoginOpen(true);
+  };
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -131,9 +166,13 @@ export default function Home() {
 
           {/* Acciones */}
           <div className="flex items-center gap-2">
-            <Link href="/login" className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-navy-600 border border-navy-200 px-4 py-2 rounded-full hover:bg-navy-50 transition-colors">
+            <button
+              type="button"
+              onClick={openLogin}
+              className="hidden sm:inline-flex items-center gap-1.5 text-xs font-semibold text-navy-600 border border-navy-200 px-4 py-2 rounded-full hover:bg-navy-50 transition-colors"
+            >
               Iniciar Sesión
-            </Link>
+            </button>
             <Link href="#cta" className="inline-flex items-center gap-1.5 bg-navy-600 text-white text-xs font-bold px-4 py-2 rounded-full shadow hover:bg-navy-700 transition-colors">
               Agenda gratis
               <ChevronRight className="h-3 w-3" />
@@ -159,10 +198,13 @@ export default function Home() {
                   {l.label}
                 </Link>
               ))}
-              <Link href="/login" onClick={() => setMenuOpen(false)}
-                className="mt-2 px-4 py-2.5 text-sm font-semibold text-navy-600 border border-navy-200 rounded-xl text-center hover:bg-navy-50">
+              <button
+                type="button"
+                onClick={openLogin}
+                className="mt-2 px-4 py-2.5 text-sm font-semibold text-navy-600 border border-navy-200 rounded-xl text-center hover:bg-navy-50"
+              >
                 Iniciar Sesión
-              </Link>
+              </button>
             </div>
           </div>
         )}
@@ -630,6 +672,9 @@ export default function Home() {
         aria-label="Escribir por WhatsApp">
         <MessageCircle className="h-7 w-7 text-white fill-white" />
       </a>
+
+      {/* ── LOGIN MODAL ────────────────────────────────────── */}
+      <LoginModal open={loginOpen} onClose={handleCloseLogin} />
     </div>
   );
 }

@@ -12,7 +12,7 @@ export const useLogout = () => {
       
       // Usar window.location.href para evitar conflictos con Next.js router
       if (typeof window !== 'undefined') {
-        window.location.href = '/login';
+        window.location.href = '/?login=1';
       }
     } catch (error) {
       console.error('Error during logout:', error);

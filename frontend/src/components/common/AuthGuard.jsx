@@ -18,13 +18,13 @@ export const AuthGuard = ({ children }) => {
         setIsLoading(false);
 
         if (!authenticated) {
-          router.push('/login');
+          router.push('/?login=1');
         }
       } catch (error) {
         console.error('Error checking authentication:', error);
         setIsAuthenticated(false);
         setIsLoading(false);
-        router.push('/login');
+        router.push('/?login=1');
       }
     };
 
